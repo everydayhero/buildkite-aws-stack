@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e -o pipefail
+
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+
+cd packer
+/usr/bin/packer build -debug -var "access_key=${TF_VAR_access_key}" -var "secret_key=${TF_VAR_secret_key}" -var "region=$TF_VAR_region" buildkite-ami.json | tee packer.output
+
+if hash buildkite-agent 2> /dev/null; then
+  echo "~~~ Uploading AMI"
+  grep -Eo "${TF_VAR_region}: (ami-.+)" packer.output | cut -d' ' -f2 > ami-id
+
+  buildkite-agent artifact upload ami-id "$BUILDKITE_ARTIFACT_UPLOAD_DESTINATION"
+fi

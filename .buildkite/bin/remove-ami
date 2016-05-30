@@ -1,0 +1,6 @@
+#!/bin/bash -ie
+
+if hash buildkite-agent 2> /dev/null; then
+  buildkite-agent artifact download ami-id .
+  aws ec2 deregister-image --image-id "$(cat ami-id)"
+fi

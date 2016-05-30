@@ -16,10 +16,15 @@ if [ -z "$STATE_KEY" ]; then
 fi
 
 cd ./terraform
-terraform remote config -backend=s3 -backend-config="bucket=$STATE_BUCKET" -backend-config="key=$STATE_KEY"
+/usr/bin/terraform remote config -backend=s3 -backend-config="bucket=$STATE_BUCKET" -backend-config="key=$STATE_KEY"
+
+if hash buildkite-agent 2> /dev/null; then
+  buildkite-agent artifact download ami-id .
+  export TF_VAR_image_id=$(cat ami-id)
+fi
 
 echo "~~~ Planning :terraform:"
-terraform plan -input=false -out "$PLANFILE"
+/usr/bin/terraform plan -input=false -out "$PLANFILE"
 
 if hash buildkite-agent 2> /dev/null; then
   echo "~~~ Uploading :terraform:"

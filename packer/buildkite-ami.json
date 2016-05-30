@@ -1,5 +1,7 @@
 {
   "variables": {
+    "access_key": "",
+    "secret_key": "",
     "source_ami": "ami-31719d5c",
     "region": "us-east-1",
     "branch": "{{env `BUILDKITE_BRANCH`}}",
@@ -8,6 +10,8 @@
   },
   "builders": [
     {
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
       "type": "amazon-ebs",
       "region": "{{user `region`}}",
       "source_ami": "{{user `source_ami`}}",

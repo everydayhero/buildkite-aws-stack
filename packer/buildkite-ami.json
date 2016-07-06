@@ -1,6 +1,6 @@
 {
   "variables": {
-    "source_ami": "ami-31719d5c",
+    "source_ami": "ami-3eda6129",
     "region": "us-east-1",
     "branch": "{{env `BUILDKITE_BRANCH`}}",
     "commit": "{{env `BUILDKITE_COMMIT`}}",

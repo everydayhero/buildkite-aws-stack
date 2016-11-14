@@ -7,5 +7,5 @@ TERRAFORM_SHA256=478c4fe311392804ffc449995e8d7f903abab56f7483f317c1f120d8c21b1a8
 
 wget -q https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip -O /tmp/terraform.zip
 echo "$TERRAFORM_SHA256 /tmp/terraform.zip" | sha256sum --check --strict
-sudo unzip /tmp/terraform.zip -d /usr/bin
+sudo unzip -o /tmp/terraform.zip -d /usr/bin
 

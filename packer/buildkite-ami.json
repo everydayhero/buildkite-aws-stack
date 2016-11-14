@@ -32,6 +32,10 @@
     },
     {
       "type": "shell",
+      "script": "scripts/downgrade-docker.sh"
+    },
+    {
+      "type": "shell",
       "script": "scripts/install-packer.sh"
     },
     {

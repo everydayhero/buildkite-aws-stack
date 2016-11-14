@@ -1,6 +1,18 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Resources": {
+    "AgentScheduledDownscale": {
+      "Type": "AWS::AutoScaling::ScheduledAction",
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Ref": "AgentAutoScaleGroup"
+        },
+        "DesiredCapacity": 0,
+        "Recurrence": {
+          "Ref": "ScheduledDownscale"
+        }
+      }
+    },
     "MissingMetricsAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
@@ -1138,6 +1150,11 @@
     "ImageId": {
       "Type": "String",
       "Description": "Optional - The AMI to use, otherwise uses the mapping built in",
+      "Default": ""
+    },
+    "ScheduledDownscale": {
+      "Type": "String",
+      "Description": "Optional - A cron format schedule when all instances should be shutdown",
       "Default": ""
     }
   },

@@ -1,0 +1,1303 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "AgentScheduledDownscale": {
+      "Type": "AWS::AutoScaling::ScheduledAction",
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Ref": "AgentAutoScaleGroup"
+        },
+        "DesiredCapacity": 0,
+        "Recurrence": {
+          "Ref": "ScheduledDownscale"
+        }
+      }
+    },
+    "MissingMetricsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "MetricName": "ScheduledJobsCount",
+        "Namespace": "Buildkite",
+        "Statistic": "SampleCount",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "Dimensions": [
+          {
+            "Name": "Queue",
+            "Value": {
+              "Ref": "BuildkiteQueue"
+            }
+          }
+        ],
+        "ComparisonOperator": "LessThanOrEqualToThreshold"
+      }
+    },
+    "AgentScaleUpPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": {
+          "Ref": "AgentAutoScaleGroup"
+        },
+        "Cooldown": 120,
+        "ScalingAdjustment": {
+          "Ref": "ScaleUpAdjustment"
+        }
+      }
+    },
+    "AgentScaleDownPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "ChangeInCapacity",
+        "AutoScalingGroupName": {
+          "Ref": "AgentAutoScaleGroup"
+        },
+        "Cooldown": 60,
+        "ScalingAdjustment": {
+          "Ref": "ScaleDownAdjustment"
+        }
+      }
+    },
+    "AgentUtilizationAlarmHigh": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-up if ScheduledJobs > 0 for 1 minute",
+        "MetricName": "ScheduledJobsCount",
+        "Namespace": "Buildkite",
+        "Statistic": "Minimum",
+        "Period": 60,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "AlarmActions": [
+          {
+            "Ref": "AgentScaleUpPolicy"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "Queue",
+            "Value": {
+              "Ref": "BuildkiteQueue"
+            }
+          }
+        ],
+        "ComparisonOperator": "GreaterThanThreshold"
+      }
+    },
+    "AgentUtilizationAlarmLow": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-down if UnfinishedJobs == 0 for 30 minutes",
+        "MetricName": "UnfinishedJobsCount",
+        "Namespace": "Buildkite",
+        "Statistic": "Maximum",
+        "Period": 300,
+        "EvaluationPeriods": 6,
+        "Threshold": 0,
+        "AlarmActions": [
+          {
+            "Ref": "AgentScaleDownPolicy"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "Queue",
+            "Value": {
+              "Ref": "BuildkiteQueue"
+            }
+          }
+        ],
+        "ComparisonOperator": "LessThanOrEqualToThreshold"
+      }
+    },
+    "IAMInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "IAMRole"
+          }
+        ]
+      }
+    },
+    "IAMRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyArns": {
+          "Fn::If": [
+            "UseSpecifiedIamPolicies",
+            {
+              "Ref": "ManagedPolicyArns"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "IAMPolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "InstancePolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudwatch:PutMetricData",
+                "cloudformation:DescribeStackResource",
+                "ec2:DescribeTags",
+                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:DescribeLifecycleHooks",
+                "autoscaling:RecordLifecycleActionHeartbeat",
+                "autoscaling:CompleteLifecycleAction"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "IAMRole"
+          }
+        ]
+      }
+    },
+    "SecretsBucketPolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Condition": "UseSecretsBucket",
+      "Properties": {
+        "PolicyName": "SecretsBucketPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:Get*",
+                "s3:Get",
+                "s3:List*"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "SecretsBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "SecretsBucket"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "IAMRole"
+          }
+        ]
+      }
+    },
+    "ArtifactsBucketPolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Condition": "UseArtifactsBucket",
+      "Properties": {
+        "PolicyName": "ArtifactsBucketPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:Put*",
+                "s3:List*"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "ArtifactsBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "ArtifactsBucket"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "IAMRole"
+          }
+        ]
+      }
+    },
+    "AgentLaunchConfiguration": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": "false",
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "CreateSecurityGroup",
+              {
+                "Ref": "SecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroupId"
+              }
+            ]
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "IamInstanceProfile": {
+          "Ref": "IAMInstanceProfile"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "SpotPrice": {
+          "Fn::If": [
+            "UseSpotInstances",
+            {
+              "Ref": "SpotPrice"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "ImageId": {
+          "Fn::If": [
+            "UseDefaultAMI",
+            {
+              "Fn::FindInMap": [
+                "AWSRegion2AMI",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "AMI"
+              ]
+            },
+            {
+              "Ref": "ImageId"
+            }
+          ]
+        },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": {
+                "Ref": "RootVolumeSize"
+              },
+              "VolumeType": "gp2"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xv\n/opt/aws/bin/cfn-init \\\n  --region \"",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\" \\\n  --stack \"",
+                {
+                  "Ref": "AWS::StackId"
+                },
+                "\" \\\n  --resource \"AgentLaunchConfiguration\"\n/opt/aws/bin/cfn-signal \\\n  --region \"",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\" \\\n  --stack \"",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "\" \\\n  --resource \"AgentAutoScaleGroup\" \\\n  --exit-code $?\n# Here we put any params we want to trigger a restart\n# ",
+                {
+                  "Ref": "BuildkiteAgentToken"
+                },
+                "\n# ",
+                {
+                  "Ref": "BuildkiteAgentRelease"
+                },
+                "\n# ",
+                {
+                  "Ref": "BuildkiteQueue"
+                },
+                "\n# ",
+                {
+                  "Ref": "AgentsPerInstance"
+                },
+                "\n# ",
+                {
+                  "Ref": "SecretsBucket"
+                },
+                "\n# ",
+                {
+                  "Ref": "BootstrapScriptUrl"
+                },
+                "\n"
+              ]
+            ]
+          }
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/etc/awslogs/awscli.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[plugins]\ncwlogs = cwlogs\n[default]\nregion = ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
+                "mode": "000444",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "01-write-buildkite-env": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash -eu\n\ncat << EOF > /var/lib/buildkite-agent/cfn-env\nBUILDKITE_STACK_NAME=\"",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "\"\nBUILDKITE_SECRETS_BUCKET=\"",
+                      {
+                        "Ref": "SecretsBucket"
+                      },
+                      "\"\nBUILDKITE_AGENTS_PER_INSTANCE=\"",
+                      {
+                        "Ref": "AgentsPerInstance"
+                      },
+                      "\"\nEOF\n\nchown buildkite-agent /var/lib/buildkite-agent/cfn-env\n"
+                    ]
+                  ]
+                }
+              },
+              "02-restart-docker": {
+                "command": "#!/bin/bash -eu\n\n# Sometimes Docker can be unreponsive:\n# https://github.com/docker/docker/issues/23131\n# https://github.com/buildkite/elastic-ci-stack-for-aws/issues/86\n#\n# As a workaround we start the docker daemon, wait 10 seconds, and verify\nservice docker start || ( cat /var/log/docker && false )\nsleep 10 && docker info\n"
+              },
+              "03-install-buildkite": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash -eu\n\n# Choose the right binary\nln -s /usr/bin/buildkite-agent-",
+                      {
+                        "Ref": "BuildkiteAgentRelease"
+                      },
+                      " /usr/bin/buildkite-agent\n\n# Setup the buildkite-agent config\nINSTANCE_ID=$(/opt/aws/bin/ec2-metadata --instance-id | cut -d \" \" -f 2)\nDOCKER_VERSION=$(docker --version | cut -f3 -d' ' | sed 's/,//')\n\n# Once 3.0 is stable we can just remove this and let the agent do the right thing\nif [[ \"",
+                      {
+                        "Ref": "BuildkiteAgentRelease"
+                      },
+                      "\" == \"stable\" ]]; then\n  BOOTSTRAP_SCRIPT=\"/etc/buildkite-agent/bootstrap.sh\"\nelse\n  BOOTSTRAP_SCRIPT=\"buildkite-agent bootstrap\"\nfi;\n\ncat << EOF > /etc/buildkite-agent/buildkite-agent.cfg\nname=\"",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "-$INSTANCE_ID-%n\"\ntoken=\"",
+                      {
+                        "Ref": "BuildkiteAgentToken"
+                      },
+                      "\"\nmeta-data=$(printf 'queue=%s,docker=%s,stack=%s,buildkite-aws-stack' \"",
+                      {
+                        "Ref": "BuildkiteQueue"
+                      },
+                      "\" \"$DOCKER_VERSION\" \"",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "\")\nmeta-data-ec2=true\nbootstrap-script=\"$BOOTSTRAP_SCRIPT\"\nhooks-path=/etc/buildkite-agent/hooks\nbuild-path=/var/lib/buildkite-agent/builds\nplugins-path=/var/lib/buildkite-agent/plugins\nEOF\n\nchown buildkite-agent: /etc/buildkite-agent/buildkite-agent.cfg\n\n# Setup logging first so we capture everything\nfor i in $(seq 1 ",
+                      {
+                        "Ref": "AgentsPerInstance"
+                      },
+                      "); do\n  touch /var/log/buildkite-agent-${i}.log\n\n  cat << EOF > /etc/awslogs/config/buildkite-agent-${i}.conf\n[/var/log/buildkite-agent-${i}.log]\nfile = /var/log/buildkite-agent-${i}.log\nlog_group_name = /var/log/buildkite-agent.log\nlog_stream_name = {instance_id}-${i}\ndatetime_format = %Y-%m-%d %H:%M:%S\nEOF\ndone\n\nservice awslogs restart\n"
+                    ]
+                  ]
+                }
+              },
+              "04-fetch-authorized-users": {
+                "test": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "test -n \"",
+                      {
+                        "Ref": "AuthorizedUsersUrl"
+                      },
+                      "\""
+                    ]
+                  ]
+                },
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash -eu\n\ncat << EOF > /etc/cron.hourly/authorized_keys\ncase \"",
+                      {
+                        "Ref": "AuthorizedUsersUrl"
+                      },
+                      "\" in\n    s3://*)\n      aws s3 cp \"",
+                      {
+                        "Ref": "AuthorizedUsersUrl"
+                      },
+                      "\" /tmp/authorized_keys;;\n    *)\n      curl --silent -f \"",
+                      {
+                        "Ref": "AuthorizedUsersUrl"
+                      },
+                      "\" > /tmp/authorized_keys;;\nesac\n\nmv /tmp/authorized_keys /home/ec2-user/.ssh/authorized_keys\nchmod 600 /home/ec2-user/.ssh/authorized_keys\nchown ec2-user: /home/ec2-user/.ssh/authorized_keys\nEOF\n\nchmod +x /etc/cron.hourly/authorized_keys\n\n/etc/cron.hourly/authorized_keys\n"
+                    ]
+                  ]
+                }
+              },
+              "05-run-bootstrap-script": {
+                "test": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "test -n \"",
+                      {
+                        "Ref": "BootstrapScriptUrl"
+                      },
+                      "\""
+                    ]
+                  ]
+                },
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash -eu\n\ncurl -sSL \"",
+                      {
+                        "Ref": "BootstrapScriptUrl"
+                      },
+                      "\" | bash\n"
+                    ]
+                  ]
+                }
+              },
+              "06-start-the-world": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash -eu\n\n# Start services\n\nfor i in $(seq 1 ",
+                      {
+                        "Ref": "AgentsPerInstance"
+                      },
+                      "); do\n  cp /etc/buildkite-agent/init.d.tmpl /etc/init.d/buildkite-agent-${i}\n  service buildkite-agent-${i} start\n  chkconfig --add buildkite-agent-${i}\ndone\n\n# Make sure terminationd is started if it isn't\nstart terminationd || true\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "AgentLifecycleTopic": {
+      "Type": "AWS::SNS::Topic"
+    },
+    "AgentLifecycleHookRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "autoscaling.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "AgentLifecyclePolicy",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sns:Publish"
+                  ],
+                  "Resource": {
+                    "Ref": "AgentLifecycleTopic"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/"
+      }
+    },
+    "AgentLifecycleHook": {
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Ref": "AgentAutoScaleGroup"
+        },
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
+        "DefaultResult": "CONTINUE",
+        "NotificationTargetARN": {
+          "Ref": "AgentLifecycleTopic"
+        },
+        "RoleARN": {
+          "Fn::GetAtt": [
+            "AgentLifecycleHookRole",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "AgentAutoScaleGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "VPCZoneIdentifier": {
+          "Fn::If": [
+            "CreateVpcResources",
+            [
+              {
+                "Ref": "Subnet0"
+              },
+              {
+                "Ref": "Subnet1"
+              }
+            ],
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        },
+        "LaunchConfigurationName": {
+          "Ref": "AgentLaunchConfiguration"
+        },
+        "MinSize": {
+          "Ref": "MinSize"
+        },
+        "MaxSize": {
+          "Ref": "MaxSize"
+        },
+        "MetricsCollection": [
+          {
+            "Granularity": "1Minute",
+            "Metrics": [
+              "GroupMinSize",
+              "GroupMaxSize",
+              "GroupInServiceInstances",
+              "GroupTerminatingInstances",
+              "GroupPendingInstances"
+            ]
+          }
+        ],
+        "TerminationPolicies": [
+          "OldestLaunchConfiguration",
+          "ClosestToNextInstanceHour"
+        ],
+        "Tags": [
+          {
+            "Key": "Role",
+            "Value": "buildkite-agent",
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "Name",
+            "Value": "buildkite-agent",
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "BuildkiteAgentRelease",
+            "Value": {
+              "Ref": "BuildkiteAgentRelease"
+            },
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "BuildkiteQueue",
+            "Value": {
+              "Ref": "BuildkiteQueue"
+            },
+            "PropagateAtLaunch": "true"
+          }
+        ]
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT5M",
+          "Count": {
+            "Ref": "MinSize"
+          }
+        }
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MinInstancesInService": {
+            "Ref": "MinSize"
+          },
+          "MaxBatchSize": 5,
+          "PauseTime": "PT40M",
+          "WaitOnResourceSignals": "true"
+        }
+      }
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "CreateSecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable access to SSH",
+        "VpcId": {
+          "Fn::If": [
+            "CreateVpcResources",
+            {
+              "Ref": "Vpc"
+            },
+            {
+              "Ref": "VpcId"
+            }
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "MetricsStack": {
+      "Condition": "CreateMetricsStack",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/buildkite-cloudwatch-metrics-publisher/master/cloudwatch-metrics-publisher.json",
+        "Parameters": {
+          "BuildkiteApiAccessToken": {
+            "Ref": "BuildkiteApiAccessToken"
+          },
+          "BuildkiteOrgSlug": {
+            "Ref": "BuildkiteOrgSlug"
+          },
+          "KeyName": {
+            "Ref": "KeyName"
+          },
+          "QueueName": {
+            "Ref": "BuildkiteQueue"
+          },
+          "PollInterval": "15s",
+          "VpcId": {
+            "Fn::If": [
+              "CreateVpcResources",
+              {
+                "Ref": "Vpc"
+              },
+              {
+                "Ref": "VpcId"
+              }
+            ]
+          },
+          "Subnets": {
+            "Fn::If": [
+              "CreateVpcResources",
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Ref": "Subnet0"
+                    },
+                    ",",
+                    {
+                      "Ref": "Subnet1"
+                    }
+                  ]
+                ]
+              },
+              {
+                "Fn::Join": [
+                  ",",
+                  {
+                    "Ref": "Subnets"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Role",
+            "Value": "buildkite-metrics"
+          },
+          {
+            "Key": "Name",
+            "Value": "buildkite-metrics"
+          }
+        ]
+      }
+    },
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      }
+    },
+    "Gateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+      }
+    },
+    "GatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "DependsOn": "Gateway",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "Gateway"
+        },
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "Subnet0": {
+      "Type": "AWS::EC2::Subnet",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::If": [
+            "UseSpecifiedAvailabilityZones",
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "AvailabilityZones"
+                }
+              ]
+            },
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Fn::GetAZs": {
+                    "Ref": "AWS::Region"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "CidrBlock": "10.0.1.0/24",
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "Subnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::If": [
+            "UseSpecifiedAvailabilityZones",
+            {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "AvailabilityZones"
+                }
+              ]
+            },
+            {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::GetAZs": {
+                    "Ref": "AWS::Region"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "CidrBlock": "10.0.2.0/24",
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "Routes": {
+      "Type": "AWS::EC2::RouteTable",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "RouteDefault": {
+      "Type": "AWS::EC2::Route",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "Gateway"
+        },
+        "RouteTableId": {
+          "Ref": "Routes"
+        }
+      }
+    },
+    "Subnet0Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "Subnet0"
+        },
+        "RouteTableId": {
+          "Ref": "Routes"
+        }
+      }
+    },
+    "Subnet1Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Condition": "CreateVpcResources",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "Subnet1"
+        },
+        "RouteTableId": {
+          "Ref": "Routes"
+        }
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Buildkite Configuration"
+          },
+          "Parameters": [
+            "BuildkiteAgentRelease",
+            "BuildkiteAgentToken",
+            "BuildkiteQueue",
+            "BuildkiteOrgSlug",
+            "BuildkiteApiAccessToken"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VpcId",
+            "Subnets",
+            "AvailabilityZones",
+            "SecurityGroupId",
+            "ManagedPolicyArns"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Instance Configuration"
+          },
+          "Parameters": [
+            "ImageId",
+            "InstanceType",
+            "AgentsPerInstance",
+            "KeyName",
+            "SpotPrice",
+            "SecretsBucket",
+            "ArtifactsBucket",
+            "AuthorizedUsersUrl",
+            "BootstrapScriptUrl",
+            "RootVolumeSize"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Auto-scaling Configuration"
+          },
+          "Parameters": [
+            "MinSize",
+            "MaxSize",
+            "ScaleUpAdjustment",
+            "ScaleDownAdjustment",
+            "AutoscaleStrategy"
+          ]
+        }
+      ]
+    }
+  },
+  "Parameters": {
+    "KeyName": {
+      "Description": "The ssh keypair used to access the buildkite instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "MinLength": 1
+    },
+    "BuildkiteAgentRelease": {
+      "Type": "String",
+      "AllowedValues": [
+        "stable",
+        "unstable",
+        "experimental"
+      ],
+      "Default": "stable"
+    },
+    "BuildkiteAgentToken": {
+      "Description": "Your Buildkite Agent token",
+      "Type": "String",
+      "NoEcho": "true",
+      "MinLength": 1
+    },
+    "BuildkiteOrgSlug": {
+      "Description": "Optional Buildkite organization slug (required for autoscaling metrics)",
+      "Type": "String"
+    },
+    "BuildkiteApiAccessToken": {
+      "Description": "Optional Buildkite API access token with read_pipelines, read_builds and read_agents (required for autoscaling metrics)",
+      "Type": "String",
+      "NoEcho": "true"
+    },
+    "BuildkiteQueue": {
+      "Description": "Queue name that agents will use, targeted in pipeline steps using \"queue={value}\"",
+      "Type": "String",
+      "Default": "default",
+      "MinLength": 1
+    },
+    "AgentsPerInstance": {
+      "Description": "Number of Buildkite agents to run on each instance",
+      "Type": "Number",
+      "Default": 1,
+      "MinValue": 1
+    },
+    "SecretsBucket": {
+      "Description": "Optional - name of an existing S3 bucket containing pipeline secrets",
+      "Type": "String",
+      "Default": ""
+    },
+    "ArtifactsBucket": {
+      "Description": "Optional - name of an existing S3 bucket for build artifact storage",
+      "Type": "String",
+      "Default": ""
+    },
+    "AuthorizedUsersUrl": {
+      "Description": "Optional - http(s) url or S3 path to periodically download ssh authorized_keys from",
+      "Type": "String",
+      "Default": ""
+    },
+    "BootstrapScriptUrl": {
+      "Description": "Optional - S3 url to run on each instance during boot",
+      "Type": "String",
+      "Default": ""
+    },
+    "VpcId": {
+      "Type": "String",
+      "Description": "Optional - VPC Id of existing VPC. Leave blank to have a new VPC created",
+      "Default": ""
+    },
+    "Subnets": {
+      "Type": "CommaDelimitedList",
+      "Description": "Optional - Comma separated list of three existing VPC Subnet Ids where EC2 instances will run.  Required if setting VpcId.",
+      "Default": ""
+    },
+    "AvailabilityZones": {
+      "Type": "CommaDelimitedList",
+      "Description": "Optional - Comma-delimited list of VPC availability zones in which to create subnets. Required if setting VpcId.",
+      "Default": ""
+    },
+    "InstanceType": {
+      "Description": "The type of instance to use for the agent",
+      "Type": "String",
+      "Default": "t2.nano",
+      "MinLength": 1
+    },
+    "SpotPrice": {
+      "Description": "Optional - Spot price to use for the agents. 0 means normal (non-spot) instances are used",
+      "Type": "String",
+      "Default": 0
+    },
+    "MaxSize": {
+      "Description": "The maximum number of agents to launch",
+      "Type": "Number",
+      "Default": 10,
+      "MinValue": 1
+    },
+    "MinSize": {
+      "Description": "The minumum number of agents to launch",
+      "Type": "Number",
+      "Default": 0
+    },
+    "ScaleUpAdjustment": {
+      "Description": "The number of agents to adjust by on each scale up event (ScheduledJobsCount > 0 for 1 min)",
+      "Type": "Number",
+      "Default": 5,
+      "MinValue": 0
+    },
+    "ScaleDownAdjustment": {
+      "Description": "The number of agents to remove on each scale down event (UnfinishedJobs == 0 for 30 mins)",
+      "Type": "Number",
+      "Default": -1,
+      "MaxValue": 0
+    },
+    "RootVolumeSize": {
+      "Description": "Size of EBS volume for root filesystem in GB.",
+      "Type": "Number",
+      "Default": 250,
+      "MinValue": 10
+    },
+    "SecurityGroupId": {
+      "Type": "String",
+      "Description": "Optional - Existing security group to associate the container instances. Creates one by default.",
+      "Default": ""
+    },
+    "ManagedPolicyArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Optional - ARNs of existing managed IAM policies to associate with the container instances.",
+      "Default": ""
+    },
+    "ImageId": {
+      "Type": "String",
+      "Description": "Optional - The AMI to use, otherwise uses the mapping built in",
+      "Default": ""
+    },
+    "ScheduledDownscale": {
+      "Type": "String",
+      "Description": "Optional - A cron format schedule when all instances should be shutdown",
+      "Default": ""
+    }
+  },
+  "Conditions": {
+    "UseSpotInstances": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "SpotPrice"
+            },
+            0
+          ]
+        }
+      ]
+    },
+    "CreateVpcResources": {
+      "Fn::Equals": [
+        {
+          "Ref": "VpcId"
+        },
+        ""
+      ]
+    },
+    "CreateSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroupId"
+        },
+        ""
+      ]
+    },
+    "UseSpecifiedAvailabilityZones": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Join": [
+                "",
+                {
+                  "Ref": "AvailabilityZones"
+                }
+              ]
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "UseSecretsBucket": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "SecretsBucket"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "UseArtifactsBucket": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "ArtifactsBucket"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "UseDefaultAMI": {
+      "Fn::Equals": [
+        {
+          "Ref": "ImageId"
+        },
+        ""
+      ]
+    },
+    "CreateMetricsStack": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "BuildkiteApiAccessToken"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "UseSpecifiedIamPolicies": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Join": [
+                "",
+                {
+                  "Ref": "ManagedPolicyArns"
+                }
+              ]
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Mappings": {
+    "AWSRegion2AMI": {
+      "us-east-1": {
+        "AMI": "ami-34b3e023"
+      },
+      "us-west-1": {
+        "AMI": "ami-a41c57c4"
+      },
+      "us-west-2": {
+        "AMI": "ami-face6a9a"
+      },
+      "eu-west-1": {
+        "AMI": "ami-60612f13"
+      },
+      "eu-central-1": {
+        "AMI": "ami-d607feb9"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-ea90368b"
+      },
+      "ap-northeast-2": {
+        "AMI": "ami-b9e733d7"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-592b8d3a"
+      },
+      "ap-southeast-2": {
+        "AMI": "ami-5a380539"
+      },
+      "sa-east-1": {
+        "AMI": "ami-5a38a536"
+      }
+    }
+  }
+}

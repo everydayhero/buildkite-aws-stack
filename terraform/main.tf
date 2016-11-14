@@ -27,7 +27,7 @@ resource "aws_s3_bucket" "buildkite_secrets" {
 
 resource "aws_cloudformation_stack" "buildkite" {
   name = "${var.name}Stack"
-  template_url = "https://s3.amazonaws.com/buildkite-aws-stack/aws-stack.json"
+  template_body = "${file("aws-stack.json")}"
   capabilities = ["CAPABILITY_IAM"]
 
   parameters {

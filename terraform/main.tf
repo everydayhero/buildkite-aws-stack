@@ -44,6 +44,7 @@ resource "aws_cloudformation_stack" "buildkite" {
     RootVolumeSize = "${var.volume_size}"
     ImageId = "${var.image_id}"
     AvailabilityZones = "${coalesce(var.availability_zones, var.region)}"
+    ScheduledDownscale = "${var.scheduled_downscale}"
   }
 }
 

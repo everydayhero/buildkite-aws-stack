@@ -73,3 +73,8 @@ variable "availability_zones" {
   description = "The availability zones for the subnets. Defaults to region."
   default = ""
 }
+
+variable "scheduled_downscale" {
+  description = "The time when to downscale agents"
+  default = ""
+}

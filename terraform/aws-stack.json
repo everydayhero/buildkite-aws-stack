@@ -290,7 +290,7 @@
     "AgentLaunchConfiguration": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": "false",
+        "AssociatePublicIpAddress": "true",
         "SecurityGroups": [
           {
             "Fn::If": [

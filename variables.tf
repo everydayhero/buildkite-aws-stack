@@ -18,13 +18,12 @@ variable "name" {
   name = "buildkite"
 }
 
-variable "image_id" {
-  description = "The AMI to use"
-  default = "ami-003e1217"
-}
-
 variable "key_name" {
   description = "The ssh keypair used to access the buildkite instances"
+}
+
+variable "buildkite_agent_release" {
+  default = "stable"
 }
 
 variable "buildkite_org_slug" {
@@ -39,14 +38,14 @@ variable "buildkite_api_access_token" {
   description = "A Buildkite API access token (with read_pipelines, read_builds and read_agents) used for gathering metrics"
 }
 
-variable "buildkite_queue" {
-  description = "Name of the Buildkite agent queue that agents will use"
-  default = "elastic"
+variable "queue" {
+  type = "list"
+  default = ["default"]
 }
 
 variable "instance_type" {
   description = "The type of instance to use for the agent"
-  default = "t2.nano"
+  default = "m3.medium"
 }
 
 variable "max_size" {

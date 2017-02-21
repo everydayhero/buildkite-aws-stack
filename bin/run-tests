@@ -1,0 +1,32 @@
+#!/bin/bash -ie
+
+main() {
+  local testfiles="$1"
+  local count=0
+  local passed=0
+  local failed=0
+
+  printf "Running tests"
+
+  for testfile in $testfiles; do
+    ((count=count+1))
+
+    /bin/sh "$testfile" > /dev/null 2> /dev/null
+
+    if [[ $? == 0 ]]; then
+      ((passed=passed+1))
+      printf "."
+    else
+      ((failed=failed+1))
+      printf "F"
+    fi
+  done
+
+  printf "\n\nTests: %s. Passed: %s. Failed: %s.\n" "$count" "$passed" "$failed"
+
+  if [[ $failed != 0 ]]; then
+    return 1
+  fi
+}
+
+main ./test/*.sh

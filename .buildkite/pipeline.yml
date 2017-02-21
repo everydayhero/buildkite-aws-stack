@@ -3,14 +3,22 @@ steps:
   - name: ":terraform: Plan"
     command: ".buildkite/bin/plan"
     agents:
-      - queue=elastic
+      - queue=*
+
+  - name: ":terminal: Test"
+    command: "bin/run-tests"
+    env:
+      BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
+      BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
+    agents:
+      - queue=*
 
   - wait
 
   - name: ":terraform: Apply"
     command: ".buildkite/bin/apply"
     agents:
-      - queue=elastic
+      - queue=*
     branches: master
 
   - wait
@@ -18,7 +26,7 @@ steps:
   - name: ":secret: Upload"
     command: ".buildkite/bin/upload-secrets"
     agents:
-      - queue=elastic
+      - queue=*
     branches: master
 
   - wait
@@ -26,24 +34,11 @@ steps:
   - name: ":suspect: Test plain-utils pull"
     command: "plain-utils pull payments-staging"
     agents:
-      - queue=elastic
-    branches: master
-
-  - name: ":suspect: Test quay.io pull + push"
-    command: "docker pull quay.io/everydayhero/hello_world:latest && docker push quay.io/everydayhero/hello_world:latest"
-    agents:
-      - queue=elastic
+      - queue=*
     branches: master
 
   - name: ":suspect: Test docker hub pull + push"
     command: "docker pull everydayhero/hello_world:latest && docker push everydayhero/hello_world:latest"
     agents:
-      - queue=elastic
+      - queue=*
     branches: master
-
-  - wait
-
-  - name: ":metal:"
-    command: "echo 'Nice'"
-    agents:
-      - queue=elastic

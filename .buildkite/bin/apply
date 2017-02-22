@@ -5,8 +5,6 @@ if [ -z "$PLANFILE" ]; then
   exit 1
 fi
 
-cd ./terraform
-
 echo "~~~ Downloading :terraform:"
 buildkite-agent artifact download "$PLANFILE" .
 

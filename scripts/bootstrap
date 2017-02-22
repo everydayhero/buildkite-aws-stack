@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+TERRAFORM_VERSION=0.7.7
+TERRAFORM_SHA256=478c4fe311392804ffc449995e8d7f903abab56f7483f317c1f120d8c21b1a81
+
+PACKER_VERSION=0.11.0
+PACKER_SHA256=318ffffa13763eb6f29f28f572656356dc3dbf8d54c01ffddd1c5e2f08593adb
+
+download_from_hashicorp() {
+  local app="$1"
+  local version="$2"
+  local dest="$3"
+
+  wget -q "https://releases.hashicorp.com/${app}/${version}/${app}_${version}_linux_amd64.zip" -O "$dest"
+}
+
+checksum_file() {
+  local file="$1"
+  local sha="$2"
+
+  echo "$sha $file" | sha256sum --check --strict
+}
+
+install_from_hashicorp() {
+  local app="$1"
+  local version="$2"
+  local sha="$3"
+  local file="/tmp/${app}.zip"
+
+  download_from_hashicorp "$app" "$version" "$file"
+  checksum_file "$file" "$sha"
+
+  sudo unzip -o "$file" -d /usr/bin
+  rm -f "$file"
+}
+
+install_ansible() {
+  sudo yum -y groupinstall "Development Tools"
+  sudo yum install -y gcc-c++ patch readline readline-devel libffi-devel openssl-devel
+  sudo pip install ansible boto cryptography
+}
+
+install_ansible
+install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
+install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
+

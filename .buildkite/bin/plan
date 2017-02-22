@@ -15,7 +15,6 @@ if [ -z "$STATE_KEY" ]; then
   exit 1
 fi
 
-cd ./terraform
 terraform remote config -backend=s3 -backend-config="bucket=$STATE_BUCKET" -backend-config="key=$STATE_KEY"
 
 echo "~~~ Planning :terraform:"

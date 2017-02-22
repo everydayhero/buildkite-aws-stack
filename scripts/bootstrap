@@ -29,17 +29,23 @@ install_from_hashicorp() {
   local sha="$3"
   local file="/tmp/${app}.zip"
 
+  echo "Installing ${app}..."
+
   download_from_hashicorp "$app" "$version" "$file"
   checksum_file "$file" "$sha"
 
   sudo unzip -o "$file" -d /usr/bin
   rm -f "$file"
+
+  echo "Finished installing ${app}"
 }
 
 install_ansible() {
+  echo "Installing ansible..."
   sudo yum -y groupinstall "Development Tools"
   sudo yum install -y gcc-c++ patch readline readline-devel libffi-devel openssl-devel
   sudo pip install ansible boto cryptography
+  echo "Finished installing ansible"
 }
 
 install_ansible

@@ -106,7 +106,7 @@ resource "aws_cloudformation_stack" "buildkite" {
 resource "aws_cloudformation_stack" "buildkite_queue" {
   count = "${length(var.queue)}"
   name = "${var.name}-${element(var.queue, count.index)}-stack"
-  template_body = "${file("aws-stack.json")}"
+  template_url = "https://s3.amazonaws.com/buildkite-aws-stack/aws-stack.json"
   capabilities = ["CAPABILITY_IAM"]
 
   parameters {
@@ -125,7 +125,6 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
     RootVolumeSize = "${var.volume_size}"
     VpcId = "${aws_vpc.buildkite.id}"
     Subnets = "${join(",", aws_subnet.buildkite.*.id)}"
-    ScheduledDownscale = "${var.scheduled_downscale}"
   }
 }
 

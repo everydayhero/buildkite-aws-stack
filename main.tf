@@ -107,7 +107,7 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
   count = "${length(var.queue)}"
   name = "${var.name}-${element(var.queue, count.index)}-stack"
   template_url = "https://s3.amazonaws.com/buildkite-aws-stack/aws-stack.json"
-  capabilities = ["CAPABILITY_IAM"]
+  capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"]
 
   parameters {
     KeyName = "${var.key_name}"

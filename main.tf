@@ -30,6 +30,7 @@ resource "aws_s3_bucket_object" "bootstrap_script" {
   key = "bootstrap"
   source = "scripts/bootstrap"
   content_type = "plain/text"
+  acl = "public-read"
 }
 
 resource "aws_vpc" "buildkite" {

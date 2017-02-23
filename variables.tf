@@ -15,7 +15,7 @@ variable "region" {
 
 variable "name" {
   description = "Name of the stack"
-  name = "buildkite"
+  default = "buildkite"
 }
 
 variable "key_name" {

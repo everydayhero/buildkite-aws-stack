@@ -41,14 +41,27 @@ resource "aws_vpc" "buildkite" {
   }
 }
 
-resource "aws_subnet" "buildkite" {
+resource "aws_subnet" "private" {
   count = "${length(split(",", coalesce(var.availability_zones, var.region)))}"
   vpc_id = "${aws_vpc.buildkite.id}"
   availability_zone = "${element(split(",", coalesce(var.availability_zones, var.region)), count.index)}"
   cidr_block = "${cidrsubnet(aws_vpc.buildkite.cidr_block, 8, count.index)}"
 
   tags {
-    Name = "${var.name}-${element(split(",", coalesce(var.availability_zones, var.region)), count.index)}"
+    Name = "${var.name}-private-${element(split(",", coalesce(var.availability_zones, var.region)), count.index)}"
+  }
+}
+
+resource "aws_subnet" "public" {
+  count = "${length(split(",", coalesce(var.availability_zones, var.region)))}"
+  vpc_id = "${aws_vpc.buildkite.id}"
+  availability_zone = "${element(split(",", coalesce(var.availability_zones, var.region)), 0)}"
+  cidr_block = "${cidrsubnet(aws_vpc.buildkite.cidr_block, 8, count.index+length(split(",", coalesce(var.availability_zones, var.region))))}"
+
+  depends_on = ["aws_internet_gateway.buildkite"]
+
+  tags {
+    Name = "${var.name}-public-${element(split(",", coalesce(var.availability_zones, var.region)), count.index)}"
   }
 }
 
@@ -60,24 +73,54 @@ resource "aws_internet_gateway" "buildkite" {
   }
 }
 
-resource "aws_route_table" "buildkite" {
+resource "aws_eip" "nat" {
+  count = "${length(split(",", coalesce(var.availability_zones, var.region)))}"
+  vpc = true
+}
+
+resource "aws_nat_gateway" "public" {
+  count = "${length(split(",", coalesce(var.availability_zones, var.region)))}"
+  subnet_id = "${element(aws_subnet.public.*.id, count.index)}"
+  allocation_id = "${element(aws_eip.nat.*.id, count.index)}"
+}
+
+resource "aws_route_table" "private" {
+  count = "${length(split(",", coalesce(var.availability_zones, var.region)))}"
   vpc_id = "${aws_vpc.buildkite.id}"
 
+  route {
+    nat_gateway_id = "${element(aws_nat_gateway.public.*.id, count.index)}"
+    cidr_block = "0.0.0.0/0"
+  }
+
   tags {
-    Name = "${var.name}"
+    Name = "${var.name}-private-${element(split(",", coalesce(var.availability_zones, var.region)), count.index)}"
   }
 }
 
-resource "aws_route" "buildkite_gateway" {
-  route_table_id = "${aws_route_table.buildkite.id}"
-  gateway_id = "${aws_internet_gateway.buildkite.id}"
-  destination_cidr_block = "0.0.0.0/0"
+resource "aws_route_table_association" "private" {
+  count = "${length(split(",", coalesce(var.availability_zones, var.region)))}"
+  route_table_id = "${element(aws_route_table.private.*.id, count.index)}"
+  subnet_id = "${element(aws_subnet.private.*.id, count.index)}"
 }
 
-resource "aws_route_table_association" "buildkite" {
+resource "aws_default_route_table" "default" {
+  default_route_table_id = "${aws_vpc.buildkite.default_route_table_id}"
+
+  route {
+    gateway_id = "${aws_internet_gateway.buildkite.id}"
+    cidr_block = "0.0.0.0/0"
+  }
+
+  tags {
+    Name = "${var.name}-public"
+  }
+}
+
+resource "aws_route_table_association" "public" {
   count = "${length(split(",", coalesce(var.availability_zones, var.region)))}"
-  route_table_id = "${aws_route_table.buildkite.id}"
-  subnet_id = "${element(aws_subnet.buildkite.*.id, count.index)}"
+  route_table_id = "${aws_vpc.buildkite.default_route_table_id}"
+  subnet_id = "${element(aws_subnet.public.*.id, count.index)}"
 }
 
 resource "aws_cloudformation_stack" "buildkite" {
@@ -124,7 +167,8 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
     MinSize = "${var.min_size}"
     RootVolumeSize = "${var.volume_size}"
     VpcId = "${aws_vpc.buildkite.id}"
-    Subnets = "${join(",", aws_subnet.buildkite.*.id)}"
+    Subnets = "${join(",", aws_subnet.private.*.id)}"
+    AssociatePublicIpAddress = "false"
   }
 }
 

@@ -77,8 +77,3 @@ variable "cidr_block" {
   description = "The CIDR block to use for the VPC. Defaults to 10.0.0.0/16."
   default = "10.0.0.0/16"
 }
-
-variable "scheduled_downscale" {
-  description = "The time when to downscale agents"
-  default = ""
-}

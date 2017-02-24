@@ -142,7 +142,7 @@ resource "aws_cloudformation_stack" "buildkite" {
     MinSize = "0"
     RootVolumeSize = "100"
     AvailabilityZones = "${coalesce(var.availability_zones, var.region)}"
-    ScheduledDownscale = "${var.scheduled_downscale}"
+    ScheduledDownscale = "0 14 * * *"
   }
 }
 

@@ -142,7 +142,7 @@ resource "aws_cloudformation_stack" "buildkite" {
     MinSize = "0"
     RootVolumeSize = "100"
     AvailabilityZones = "${coalesce(var.availability_zones, var.region)}"
-    ScheduledDownscale = "${var.scheduled_downscale}"
+    ScheduledDownscale = "0 14 * * *"
   }
 }
 
@@ -162,10 +162,13 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
     BootstrapScriptUrl = "http://${aws_s3_bucket.buildkite_secrets.id}.s3.amazonaws.com/${aws_s3_bucket_object.bootstrap_script.id}"
     SecretsBucket = "${aws_s3_bucket.buildkite_secrets.id}"
     ArtifactsBucket = "${aws_s3_bucket.buildkite_artifacts.id}"
-    InstanceType = "${var.instance_type}"
-    MaxSize = "${var.max_size}"
-    MinSize = "${var.min_size}"
-    RootVolumeSize = "${var.volume_size}"
+    InstanceType = "${lookup(var.instance_type, element(var.queue, count.index), var.default_instance_type)}"
+    MaxSize = "${lookup(var.max_size, element(var.queue, count.index), var.default_max_size)}"
+    MinSize = "${lookup(var.min_size, element(var.queue, count.index), var.default_min_size)}"
+    RootVolumeSize = "${lookup(var.volume_size, element(var.queue, count.index), var.default_volume_size)}"
+    AgentsPerInstance = "${lookup(var.agents_per_instance, element(var.queue, count.index), var.default_agents_per_instance)}"
+    ScaleUpAdjustment = "${lookup(var.scale_up_adjustment, element(var.queue, count.index), var.default_scale_up_adjustment)}"
+    ScaleDownAdjustment = "${lookup(var.scale_down_adjustment, element(var.queue, count.index), var.default_scale_down_adjustment)}"
     VpcId = "${aws_vpc.buildkite.id}"
     Subnets = "${join(",", aws_subnet.private.*.id)}"
     AssociatePublicIpAddress = "false"

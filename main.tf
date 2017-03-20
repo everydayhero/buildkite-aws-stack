@@ -163,6 +163,7 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
     SecretsBucket = "${aws_s3_bucket.buildkite_secrets.id}"
     ArtifactsBucket = "${aws_s3_bucket.buildkite_artifacts.id}"
     InstanceType = "${lookup(var.instance_type, element(var.queue, count.index), var.default_instance_type)}"
+    ManagedPolicyARN = "${lookup(var.managed_policy_arn, element(var.queue, count.index), "")}"
     MaxSize = "${lookup(var.max_size, element(var.queue, count.index), var.default_max_size)}"
     MinSize = "${lookup(var.min_size, element(var.queue, count.index), var.default_min_size)}"
     RootVolumeSize = "${lookup(var.volume_size, element(var.queue, count.index), var.default_volume_size)}"

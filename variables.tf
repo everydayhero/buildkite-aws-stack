@@ -54,6 +54,12 @@ variable "default_instance_type" {
   default = "m3.medium"
 }
 
+variable "managed_policy_arn" {
+  type = "map"
+  description = "Optional managed IAM policy to attach to the instance role"
+  default = {}
+}
+
 variable "max_size" {
   type = "map"
   description = "The maximum number of agents to launch"

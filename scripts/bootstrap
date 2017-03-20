@@ -48,7 +48,14 @@ install_ansible() {
   echo "Finished installing ansible"
 }
 
+configure_packer() {
+  cat <<EOF | sudo tee -a /etc/sudoers.d/packer
+buildkite-agent ALL=(ALL) NOPASSWD: /bin/mount *
+buildkite-agent ALL=(ALL) NOPASSWD:SETENV: /usr/local/bin/packer build *
+EOF
+  sudo chmod 440 /etc/sudoers.d/packer
+}
+
 install_ansible
 install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
 install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
-

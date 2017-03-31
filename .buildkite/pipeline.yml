@@ -1,5 +1,10 @@
 ---
 steps:
+  - name: ":terraform: Plan"
+    command: ".buildkite/bin/plan"
+    agents:
+      - queue=default
+
   - name: ":terminal: Test"
     command: "bin/run-tests"
     env:
@@ -7,6 +12,14 @@ steps:
       BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
     agents:
       - queue=default
+
+  - wait
+
+  - name: ":terraform: Apply"
+    command: ".buildkite/bin/apply"
+    agents:
+      - queue=default
+    branches: master
 
   - wait
 

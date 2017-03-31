@@ -123,29 +123,6 @@ resource "aws_route_table_association" "public" {
   subnet_id = "${element(aws_subnet.public.*.id, count.index)}"
 }
 
-resource "aws_cloudformation_stack" "buildkite" {
-  name = "${var.name}Stack"
-  template_body = "${file("deprecated-aws-stack.json")}"
-  capabilities = ["CAPABILITY_IAM"]
-
-  parameters {
-    KeyName = "${var.key_name}"
-    ImageId = "ami-df6247c8"
-    BuildkiteOrgSlug = "${var.buildkite_org_slug}"
-    BuildkiteAgentToken = "${var.buildkite_agent_token}"
-    BuildkiteQueue = "elastic"
-    BuildkiteApiAccessToken = "${var.buildkite_api_access_token}"
-    SecretsBucket = "${aws_s3_bucket.buildkite_secrets.id}"
-    ArtifactsBucket = "${aws_s3_bucket.buildkite_artifacts.id}"
-    InstanceType = "t2.large"
-    MaxSize = "20"
-    MinSize = "0"
-    RootVolumeSize = "100"
-    AvailabilityZones = "${coalesce(var.availability_zones, var.region)}"
-    ScheduledDownscale = "0 14 * * *"
-  }
-}
-
 resource "aws_cloudformation_stack" "buildkite_queue" {
   count = "${length(var.queue)}"
   name = "${var.name}-${element(var.queue, count.index)}-stack"

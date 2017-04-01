@@ -4,6 +4,12 @@ provider "aws" {
   region     = "${var.region}"
 }
 
+terraform {
+  required_version = ">= 0.9.0"
+
+  backend "s3" {}
+}
+
 resource "aws_s3_bucket" "buildkite_artifacts" {
   bucket = "${var.name}-artifacts"
   acl = "private"

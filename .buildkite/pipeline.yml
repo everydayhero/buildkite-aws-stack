@@ -9,6 +9,9 @@ steps:
       BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
       BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
 
+  - name: ":terraform: Format"
+    command: ".buildkite/bin/check-format"
+
   - wait
 
   - name: ":terraform: Apply"

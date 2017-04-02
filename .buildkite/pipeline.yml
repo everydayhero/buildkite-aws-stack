@@ -1,31 +1,35 @@
 ---
 steps:
+  - name: ":terraform: Plan"
+    command: ".buildkite/bin/plan"
+
   - name: ":terminal: Test"
     command: "bin/run-tests"
     env:
       BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
       BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
-    agents:
-      - queue=default
+
+  - name: ":terraform: Format"
+    command: ".buildkite/bin/check-format"
+
+  - wait
+
+  - name: ":terraform: Apply"
+    command: ".buildkite/bin/apply"
+    branches: master
 
   - wait
 
   - name: ":secret: Upload"
     command: ".buildkite/bin/upload-secrets"
-    agents:
-      - queue=default
     branches: master
 
   - wait
 
   - name: ":suspect: Test plain-utils pull"
     command: "plain-utils pull payments-staging"
-    agents:
-      - queue=default
     branches: master
 
   - name: ":suspect: Test docker hub pull + push"
     command: "docker pull everydayhero/hello_world:latest && docker push everydayhero/hello_world:latest"
-    agents:
-      - queue=default
     branches: master

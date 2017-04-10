@@ -39,6 +39,14 @@ resource "aws_s3_bucket_object" "bootstrap_script" {
   acl          = "public-read"
 }
 
+resource "aws_s3_bucket_object" "authorized_users" {
+  bucket       = "${aws_s3_bucket.buildkite_secrets.id}"
+  key          = "authorized_users"
+  source       = "${var.authorized_users}"
+  content_type = "plain/text"
+  acl          = "public-read"
+}
+
 resource "aws_vpc" "buildkite" {
   cidr_block = "${var.cidr_block}"
 
@@ -143,6 +151,7 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
     BuildkiteQueue           = "${element(var.queue, count.index)}"
     BuildkiteApiAccessToken  = "${var.buildkite_api_access_token}"
     BootstrapScriptUrl       = "http://${aws_s3_bucket.buildkite_secrets.id}.s3.amazonaws.com/${aws_s3_bucket_object.bootstrap_script.id}"
+    AuthorizedUsersUrl       = "http://${aws_s3_bucket.buildkite_secrets.id}.s3.amazonaws.com/${aws_s3_bucket_object.authorized_users.id}"
     SecretsBucket            = "${aws_s3_bucket.buildkite_secrets.id}"
     ArtifactsBucket          = "${aws_s3_bucket.buildkite_artifacts.id}"
     InstanceType             = "${lookup(var.instance_type, element(var.queue, count.index), var.default_instance_type)}"

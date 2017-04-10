@@ -7,6 +7,9 @@ fi
 
 terraform init -backend=true -backend-config="bucket=$STATE_BUCKET" -backend-config="key=$STATE_KEY"
 
+echo "~~~ Generating authorized users"
+TF_authorized_users=$(.buildkite/bin/generate-authorized-users)
+
 echo "~~~ Planning :terraform:"
 terraform plan -input=false -out "$PLANFILE"
 

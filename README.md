@@ -56,3 +56,6 @@ Default variables for all queues:
 * `default_agents_per_instance` - Default number of Buildkite agents to run on each instance (default: `1`)
 * `default_scale_up_adjustment` - Default number of instances to add on scale up events (default: `5`)
 * `default_scale_down_adjustment` - Default number of instances to remove on scale down events (default: `-1`)
+
+## Contributing
+See [CONTRIBUTING.md](./.github/CONTRIBUTING.markdown).

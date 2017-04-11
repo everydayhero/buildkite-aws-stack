@@ -1,10 +1,11 @@
 #!/bin/bash
 
+set -ie
+
+terraform validate
+
 if [[ $(terraform fmt -list=true -write=false) ]]; then
   echo "Invalid format. Run 'terraform fmt' and commit changes."
   exit -1
-else
-  echo "Format is good"
-  exit 0
 fi
 

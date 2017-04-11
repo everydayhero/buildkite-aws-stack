@@ -140,3 +140,8 @@ variable "cidr_block" {
   description = "The CIDR block to use for the VPC. Defaults to 10.0.0.0/16."
   default     = "10.0.0.0/16"
 }
+
+variable "authorized_users" {
+  description = "The filepath to a file containing authorized SSH public keys."
+  default     = ""
+}

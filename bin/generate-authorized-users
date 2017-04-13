@@ -5,6 +5,10 @@ import sys
 import tempfile
 from os.path import expanduser
 
+if len(sys.argv) < 2:
+  print "Usage: %s <path>" % sys.argv[0]
+  sys.exit(1)
+
 with open(expanduser("~/Code/configure/group_vars/users.yml"), "r") as stream:
   try:
     data = yaml.load(stream)
@@ -12,11 +16,10 @@ with open(expanduser("~/Code/configure/group_vars/users.yml"), "r") as stream:
     print ex
     sys.exit(1)
 
-with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp:
+with open(expanduser(sys.argv[1]), "w") as output:
   for user in data["users"]:
     if "admin" in user and user["admin"]:
-      temp.write(user["ssh_key"])
-      temp.write("\n")
-  temp.flush()
-  print temp.name
+      output.write(user["ssh_key"])
+      output.write("\n")
+  output.flush()
 

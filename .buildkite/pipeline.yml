@@ -1,8 +1,5 @@
 ---
 steps:
-  - name: ":terraform: Plan"
-    command: ".buildkite/bin/plan"
-
   - name: ":terminal: Test"
     command: "bin/run-tests"
     env:
@@ -12,10 +9,20 @@ steps:
   - name: ":terraform: Validate"
     command: ".buildkite/bin/validate"
 
+  - name: ":cop: Users"
+    command: ".buildkite/bin/generate-and-upload-authorized-users"
+
+  - wait
+
+  - name: ":terraform: Plan"
+    command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/plan"
+    env:
+      TF_authorized_users: authorized-users
+
   - wait
 
   - name: ":terraform: Apply"
-    command: ".buildkite/bin/apply"
+    command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/apply"
     branches: master
 
   - wait

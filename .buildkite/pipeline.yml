@@ -17,15 +17,13 @@ steps:
   - name: ":terraform: Plan"
     command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/plan"
     env:
-      TF_authorized_users: authorized-users
+      TF_VAR_authorized_users: authorized-users
 
   - wait
 
   - name: ":terraform: Apply"
-    command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/apply"
+    command: "buildkite-agent artifact download authorized-users . && cat authorized-users && .buildkite/bin/apply"
     branches: master
-    env:
-      TF_authorized_users: authorized-users
 
   - wait
 

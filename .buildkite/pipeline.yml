@@ -1,35 +1,10 @@
 ---
 steps:
-  - name: ":terminal: Test"
-    command: "bin/run-tests"
-    env:
-      BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
-      BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
-
-  - name: ":terraform: Validate"
-    command: ".buildkite/bin/validate"
-
-  - name: ":cop: Users"
-    command: ".buildkite/bin/generate-and-upload-authorized-users"
-
-  - wait
-
-  - name: ":terraform: Plan"
-    command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/plan"
-    env:
-      TF_VAR_authorized_users: authorized-users
-
-  - wait
-
-  - name: ":terraform: Apply"
-    command: "buildkite-agent artifact download authorized-users . && cat authorized-users && .buildkite/bin/apply"
-    branches: master
-
-  - wait
+  - name: "Test"
+    command: "bin/test"
 
   - name: ":secret: Upload"
     command: ".buildkite/bin/upload-secrets"
-    branches: master
 
   - wait
 

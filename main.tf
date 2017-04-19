@@ -166,6 +166,10 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
     Subnets                  = "${join(",", aws_subnet.private.*.id)}"
     AssociatePublicIpAddress = "false"
   }
+
+  lifecycle {
+    ignore_changes = ["parameters.BuildkiteAgentToken", "parameters.BuildkiteApiAccessToken"]
+  }
 }
 
 output "secrets_bucket" {

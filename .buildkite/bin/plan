@@ -5,9 +5,10 @@ if [ -z "$PLANFILE" ]; then
   exit 1
 fi
 
+echo "~~~ Initialising :terraform:"
 terraform init -backend=true -backend-config="bucket=$STATE_BUCKET" -backend-config="key=$STATE_KEY"
 
-echo "~~~ Planning :terraform:"
+echo "+++ Planning :terraform:"
 terraform plan -input=false -out "$PLANFILE"
 
 if hash buildkite-agent 2> /dev/null; then

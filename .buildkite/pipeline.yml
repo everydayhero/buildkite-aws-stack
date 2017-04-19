@@ -22,7 +22,7 @@ steps:
   - wait
 
   - name: ":terraform: Apply"
-    command: "buildkite-agent artifact download authorized-users . && cat authorized-users && .buildkite/bin/apply"
+    command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/apply"
     branches: master
 
   - wait

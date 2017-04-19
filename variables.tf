@@ -145,3 +145,8 @@ variable "authorized_users" {
   description = "The filepath to a file containing authorized SSH public keys."
   default     = ""
 }
+
+variable "env_script" {
+  description = "The filepath to a file containing the env script used per build step."
+  default     = ""
+}

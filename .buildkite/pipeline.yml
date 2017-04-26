@@ -1,4 +1,7 @@
 ---
+env:
+  BUILDKITE_S3_ACL: private
+
 steps:
   - name: ":terminal: Test"
     command: "bin/run-tests"
@@ -12,23 +15,21 @@ steps:
   - name: ":cop: Users"
     command: ".buildkite/bin/generate-and-upload-authorized-users"
 
+  - name: ":composer: Env"
+    command: ".buildkite/bin/generate-and-upload-env"
+
   - wait
 
   - name: ":terraform: Plan"
-    command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/plan"
+    command: "buildkite-agent artifact download \"*\" . && .buildkite/bin/plan"
     env:
       TF_VAR_authorized_users: authorized-users
+      TF_VAR_env_script: env
 
   - wait
 
   - name: ":terraform: Apply"
-    command: "buildkite-agent artifact download authorized-users . && .buildkite/bin/apply"
-    branches: master
-
-  - wait
-
-  - name: ":secret: Upload"
-    command: ".buildkite/bin/upload-secrets"
+    command: "buildkite-agent artifact download \"*\" . && .buildkite/bin/apply"
     branches: master
 
   - wait

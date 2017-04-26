@@ -1,0 +1,5 @@
+#!/bin/bash -ie
+
+FILEPATH=env
+
+bin/generate-env "$FILEPATH" && buildkite-agent artifact upload "$FILEPATH"

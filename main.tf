@@ -47,6 +47,15 @@ resource "aws_s3_bucket_object" "authorized_users" {
   acl          = "public-read"
 }
 
+resource "aws_s3_bucket_object" "env" {
+  bucket                 = "${aws_s3_bucket.buildkite_secrets.id}"
+  key                    = "env"
+  source                 = "${var.env_script}"
+  content_type           = "plain/text"
+  acl                    = "private"
+  server_side_encryption = "aws:kms"
+}
+
 resource "aws_vpc" "buildkite" {
   cidr_block = "${var.cidr_block}"
 

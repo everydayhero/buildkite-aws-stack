@@ -146,6 +146,98 @@ resource "aws_route_table_association" "public" {
   subnet_id      = "${element(aws_subnet.public.*.id, count.index)}"
 }
 
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "buildkite" {
+  name               = "${var.name}-host"
+  assume_role_policy = "${data.aws_iam_policy_document.assume_role.json}"
+}
+
+data "aws_iam_policy_document" "buildkite_artifacts" {
+  statement {
+    actions = [
+      "s3:Put*",
+      "s3:List*",
+      "s3:Get*",
+    ]
+
+    resources = [
+      "${aws_s3_bucket.buildkite_artifacts.id}/*",
+      "${aws_s3_bucket.buildkite_artifacts.id}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "buildkite_artifacts" {
+  name   = "ArtifactsBucketPolicy"
+  role   = "${aws_iam_role.buildkite.id}"
+  policy = "${data.aws_iam_policy_document.buildkite_artifacts.json}"
+}
+
+data "aws_iam_policy_document" "buildkite_secrets" {
+  statement {
+    actions = [
+      "s3:Get",
+      "s3:List*",
+      "s3:Get*",
+    ]
+
+    resources = [
+      "${aws_s3_bucket.buildkite_secrets.id}/*",
+      "${aws_s3_bucket.buildkite_secrets.id}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "buildkite_secrets" {
+  name   = "SecretsBucketPolicy"
+  role   = "${aws_iam_role.buildkite.id}"
+  policy = "${data.aws_iam_policy_document.buildkite_secrets.json}"
+}
+
+data "aws_iam_policy_document" "buildkite_instance" {
+  statement {
+    actions = [
+      "cloudwatch:PutMetricData",
+      "cloudformation:DescribeStackResource",
+      "ec2:DescribeTags",
+      "autoscaling:DescribeAutoScalingInstances",
+      "autoscaling:DescribeLifecycleHooks",
+      "autoscaling:RecordLifecycleActionHeartbeat",
+      "autoscaling:CompleteLifecycleAction",
+      "autoscaling:SetInstanceHealth",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogStreams",
+    ]
+
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "buildkite_instance" {
+  name   = "InstancePolicy"
+  role   = "${aws_iam_role.buildkite.id}"
+  policy = "${data.aws_iam_policy_document.buildkite_instance.json}"
+}
+
 resource "aws_cloudformation_stack" "buildkite_queue" {
   count        = "${length(var.queue)}"
   name         = "${var.name}-${element(var.queue, count.index)}-stack"
@@ -164,7 +256,7 @@ resource "aws_cloudformation_stack" "buildkite_queue" {
     SecretsBucket            = "${aws_s3_bucket.buildkite_secrets.id}"
     ArtifactsBucket          = "${aws_s3_bucket.buildkite_artifacts.id}"
     InstanceType             = "${lookup(var.instance_type, element(var.queue, count.index), var.default_instance_type)}"
-    ManagedPolicyARN         = "${lookup(var.managed_policy_arn, element(var.queue, count.index), "")}"
+    ManagedPolicyARN         = "${aws_iam_role.buildkite.id}"
     MaxSize                  = "${lookup(var.max_size, element(var.queue, count.index), var.default_max_size)}"
     MinSize                  = "${lookup(var.min_size, element(var.queue, count.index), var.default_min_size)}"
     RootVolumeSize           = "${lookup(var.volume_size, element(var.queue, count.index), var.default_volume_size)}"
@@ -187,4 +279,8 @@ output "secrets_bucket" {
 
 output "artifacts_bucket" {
   value = "${aws_s3_bucket.buildkite_artifacts.id}"
+}
+
+output "role" {
+  value = "${aws_iam_role.buildkite.id}"
 }

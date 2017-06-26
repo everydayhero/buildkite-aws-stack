@@ -230,6 +230,49 @@ data "aws_iam_policy_document" "buildkite_instance" {
 
     resources = ["*"]
   }
+
+  statement {
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:CompleteLayerUpload",
+      "ecr:DescribeImages",
+      "ecr:DescribeRepositories",
+      "ecr:GetAuthorizationToken",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetRepositoryPolicy",
+      "ecr:InitiateLayerUpload",
+      "ecr:ListImages",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart",
+      "ecs:DeleteService",
+      "ecs:DeregisterContainerInstance",
+      "ecs:DescribeClusters",
+      "ecs:DescribeContainerInstances",
+      "ecs:DescribeServices",
+      "ecs:DescribeTaskDefinition",
+      "ecs:DescribeTasks",
+      "ecs:DiscoverPollEndpoint",
+      "ecs:ListClusters",
+      "ecs:ListContainerInstances",
+      "ecs:ListServices",
+      "ecs:ListTaskDefinitionFamilies",
+      "ecs:ListTaskDefinitions",
+      "ecs:ListTasks",
+      "ecs:Poll",
+      "ecs:RegisterContainerInstance",
+      "ecs:RegisterTaskDefinition",
+      "ecs:RunTask",
+      "ecs:StartTask",
+      "ecs:StartTelemetrySession",
+      "ecs:StopTask",
+      "ecs:SubmitContainerStateChange",
+      "ecs:SubmitTaskStateChange",
+      "ecs:UpdateService",
+    ]
+
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "buildkite_instance" {

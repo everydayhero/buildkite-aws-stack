@@ -6,10 +6,10 @@ if [ -z "$PLANFILE" ]; then
 fi
 
 echo "~~~ Initialising :terraform:"
-terraform init -backend=true -backend-config="bucket=$STATE_BUCKET" -backend-config="key=$STATE_KEY"
+terraform init -backend=true -backend-config="bucket=$STATE_BUCKET" -backend-config="key=$STATE_KEY" -input=false
 
 echo "+++ Planning :terraform:"
-terraform plan -input=false -out "$PLANFILE"
+terraform plan -refresh=false -input=false -out "$PLANFILE"
 
 if hash buildkite-agent 2> /dev/null; then
   echo "~~~ Uploading :terraform:"

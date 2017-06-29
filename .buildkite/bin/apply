@@ -9,4 +9,4 @@ echo "~~~ Downloading :terraform:"
 buildkite-agent artifact download "$PLANFILE" .
 
 echo "~~~ Applying :terraform:"
-terraform apply -input=false "$PLANFILE"
+terraform apply -refresh=false -input=false "$PLANFILE"

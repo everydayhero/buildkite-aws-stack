@@ -51,7 +51,7 @@ configure_plain() {
   local code_dir=~/Code
   echo "mkdir -p $code_dir"
 
-  for repo in configure plain-utils; do
+  for repo in configure plain-utils plain-services-docker; do
     cat <<EOT
 (
   flock -e 200 || { echo "Could not lock $repo"; exit 10; }

@@ -38,6 +38,11 @@ variable "buildkite_api_access_token" {
   description = "A Buildkite API access token (with read_pipelines, read_builds and read_agents) used for gathering metrics"
 }
 
+variable "buildkite_stack_version" {
+  description = "The version of the Buildkite Elastic CI Stack for AWS to use"
+  default     = "v2.1.4"
+}
+
 variable "queue" {
   type    = "list"
   default = ["default"]

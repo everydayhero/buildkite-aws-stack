@@ -200,7 +200,7 @@ resource "aws_iam_policy" "buildkite" {
 resource "aws_cloudformation_stack" "buildkite_queue" {
   count        = "${length(var.queue)}"
   name         = "${var.name}-${element(var.queue, count.index)}-stack"
-  template_url = "https://s3.amazonaws.com/buildkite-aws-stack/aws-stack.json"
+  template_url = "https://s3.amazonaws.com/buildkite-aws-stack/${var.buildkite_stack_version}/aws-stack.json"
   capabilities = ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"]
 
   parameters {

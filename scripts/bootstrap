@@ -48,6 +48,14 @@ install_ansible() {
   echo "Finished installing ansible"
 }
 
+install_convox() {
+  echo "Installing convox..."
+  wget -q "https://convox.com/install/linux.zip" -O /tmp/convox.zip
+  sudo unzip /tmp/convox.zip -d /usr/bin
+  rm -f /tmp/convox.zip
+  echo "Finished installing convox"
+}
+
 configure_packer() {
   cat <<EOF | sudo tee -a /etc/sudoers.d/packer
 buildkite-agent ALL=(ALL) NOPASSWD: /bin/mount *
@@ -95,6 +103,7 @@ EOT
 install_ansible
 install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
 install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
+install_convox
 
 configure_packer
 configure_ssh

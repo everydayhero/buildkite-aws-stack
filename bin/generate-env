@@ -83,6 +83,10 @@ plain_pipeline_env() {
   echo 'export APP="${APP:-$(echo $BUILDKITE_REPO | sed -e '\'s/.*@.*:.*\\/\\\(.*\\\)\\.git/\\1/\'')}"'
 }
 
+plain_services_docker_network() {
+  echo 'plain-services-docker init'
+}
+
 gen_env() {
 cat <<ENV
 $(ssh_config)
@@ -90,6 +94,7 @@ $(docker_auth)
 $(configure_plain)
 $(buildkite_flags)
 $(plain_pipeline_env)
+$(plain_services_docker_network)
 ENV
 }
 

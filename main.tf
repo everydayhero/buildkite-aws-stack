@@ -37,6 +37,7 @@ resource "aws_s3_bucket_object" "bootstrap_script" {
   source       = "scripts/bootstrap"
   content_type = "plain/text"
   acl          = "public-read"
+  etag         = "${md5(file("scripts/bootstrap"))}"
 }
 
 resource "aws_s3_bucket_object" "authorized_users" {
@@ -45,6 +46,7 @@ resource "aws_s3_bucket_object" "authorized_users" {
   source       = "${var.authorized_users}"
   content_type = "plain/text"
   acl          = "public-read"
+  etag         = "${md5(file(var.authorized_users))}"
 }
 
 resource "aws_s3_bucket_object" "env" {

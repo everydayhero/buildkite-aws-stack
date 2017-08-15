@@ -75,6 +75,7 @@ buildkite_flags() {
 }
 
 convox() {
+  echo 'export CONVOX_WAIT=true'
   echo 'export CONVOX_HOST=console.convox.com'
   echo "export CONVOX_PASSWORD=$CONVOX_API_KEY"
 }

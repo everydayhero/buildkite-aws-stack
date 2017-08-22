@@ -90,6 +90,7 @@ plain_pipeline_env() {
 }
 
 plain_services_docker_network() {
+  echo 'docker network prune --force'
   echo 'plain-services-docker init'
 }
 

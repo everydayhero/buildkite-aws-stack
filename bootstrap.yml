@@ -1,0 +1,400 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  Vpc:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  Gateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  GatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    DependsOn: Gateway
+    Properties:
+      InternetGatewayId: !Ref Gateway
+      VpcId: !Ref Vpc
+
+  Eip0:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: Vpc
+
+  Eip1:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: Vpc
+
+  PrivateSubnet0:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.0.0/22
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Private 0
+
+  PrivateSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.4.0/22
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Private 1
+
+  PublicSubnet0:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.255.235/28
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Public 0
+
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.255.240/28
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Public 1
+
+  PrivateRoutes0:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Private 0
+
+  PrivateRoutes1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Private 1
+
+  PublicRoutes0:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Public 0
+
+  PublicRoutes1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Public 1
+
+  PrivateRouteDefault0:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PrivateRoutes0
+      NatGatewayId: !Ref Nat0
+
+  PrivateRouteDefault1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PrivateRoutes1
+      NatGatewayId: !Ref Nat1
+
+  PublicRouteDefault0:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PublicRoutes0
+      GatewayId: !Ref Gateway
+
+  PublicRouteDefault1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PublicRoutes1
+      GatewayId: !Ref Gateway
+
+  PrivateRoutesAssociation0:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet0
+      RouteTableId: !Ref PrivateRoutes0
+
+  PrivateRoutesAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRoutes1
+
+  PublicRoutesAssociation0:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet0
+      RouteTableId: !Ref PublicRoutes0
+
+  PublicRoutesAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRoutes1
+
+  Nat0:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn:
+      - PublicRouteDefault0
+      - PublicRoutesAssociation0
+    Properties:
+      SubnetId: !Ref PublicSubnet0
+      AllocationId: !GetAtt Eip0.AllocationId
+
+  Nat1:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn:
+      - PublicRouteDefault1
+      - PublicRoutesAssociation1
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      AllocationId: !GetAtt Eip1.AllocationId
+
+  SecretsBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      LoggingConfiguration:
+        DestinationBucketName: !Ref SecretsLoggingBucket
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Secrets
+
+  SecretsLoggingBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      AccessControl: LogDeliveryWrite
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Secrets Access Logs
+
+  ArtifactsBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: ObjectTimeToLive
+            Status: Enabled
+            Prefix: '*'
+            ExpirationInDays: !Ref ArtifactLifespan
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Artifacts
+
+  BuildkiteManagedPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: BuildkiteManagedPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:Put*
+            Resource:
+              - !Sub arn:aws:s3:::${SecretsBucket}/*
+              - !Sub arn:aws:s3:::${SecretsBucket}
+          - Effect: Allow
+            Action:
+              - autoscaling:*
+              - iam:*
+              - sns:*
+              - lambda:*
+              - events:*
+              - cloudwatch:*
+              - cloudformation:*
+            Resource:
+              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:*
+              - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:*
+              - !Sub arn:aws:iam::${AWS::AccountId}:*
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:*
+              - !Sub arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*
+              - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:*
+          - Effect: Allow
+            Action: ec2:*
+            Resource: '*'
+            Condition:
+              StringEquals:
+                ec2:Region: !Ref AWS::Region
+          - Effect: Allow
+            Action:
+              - ec2:Describe*
+              - autoscaling:Describe*
+              - autoscaling:DeletePolicy
+              - cloudwatch:PutMetricAlarm
+              - cloudformation:List*
+              - cloudformation:Describe*
+              - cloudformation:*Template*
+              - sns:Describe*
+              - lambda:Describe*
+              - s3:Get*
+            Resource: '*'
+
+  Buildkite:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/buildkite-aws-stack/latest/aws-stack.json
+      Parameters:
+        AgentsPerInstance: 1
+        ArtifactsBucket: !Ref ArtifactsBucket
+        AssociatePublicIpAddress: false
+        BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
+        BuildkiteAgentToken: !Ref BuildkiteAgentToken
+        BuildkiteApiAccessToken: !Ref BuildkiteApiAccessToken
+        BuildkiteOrgSlug: !Ref BuildkiteOrgSlug
+        BuildkiteQueue: !Ref BuildkiteQueue
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        ManagedPolicyARN: !Ref BuildkiteManagedPolicy
+        MaxSize: !Ref MaxSize
+        MinSize: !Ref MinSize
+        RootVolumeSize: !Ref RootVolumeSize
+        ScaleDownAdjustment: !Ref ScaleDownAdjustment
+        ScaleUpAdjustment: !Ref ScaleUpAdjustment
+        SecretsBucket: !Ref SecretsBucket
+        Subnets: !Join [ ',', [ !Ref PrivateSubnet0, !Ref PrivateSubnet1 ] ]
+        VpcId: !Ref Vpc
+
+Outputs:
+  VpcId:
+    Value: !Ref Vpc
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+
+  Subnets:
+    Value: !Join [ ',', [ !Ref PrivateSubnet0, !Ref PrivateSubnet1 ] ]
+    Export:
+      Name: !Sub ${AWS::StackName}-Subnets
+
+  SecretsBucket:
+    Value: !Ref SecretsBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-SecretsBucket
+
+  ArtifactsBucket:
+    Value: !Ref ArtifactsBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-ArtifactsBucket
+
+Parameters:
+  ArtifactLifespan:
+    Type: Number
+    Default: 7
+    MinValue: 1
+    Description: How long to keep artifacts in days
+
+  BuildkiteAgentToken:
+    Type: String
+    Description: Buildkite agent token
+    NoEcho: true
+    MinLength: 1
+
+  BuildkiteApiAccessToken:
+    Type: String
+    Description: Buildkite API access token with read_pipelines, read_builds and read_agents (required for metrics)
+    NoEcho: true
+    MinLength: 1
+
+  BuildkiteOrgSlug:
+    Type: String
+    Description: Buildkite organization slug
+    MinLength: 1
+
+  BuildkiteQueue:
+    Type: String
+    Description: 'Queue name that agents will use, targeted in pipeline steps using "queue={value}"'
+    Default: buildkite
+    MinLength: 1
+
+  BuildkiteAgentRelease:
+    Type: String
+    Default: stable
+    AllowedValues:
+      - stable
+      - beta
+      - edge
+
+  KeyName:
+    Type: 'AWS::EC2::KeyPair::KeyName'
+
+  InstanceType:
+    Type: String
+    Description: Instance type
+    Default: t2.nano
+    MinLength: 1
+
+  AgentsPerInstance:
+    Type: Number
+    Description: Number of Buildkite agents to run on each instance
+    Default: 1
+    MinValue: 1
+
+  MaxSize:
+    Type: Number
+    Description: Maximum number of instances for default queue
+    Default: 1
+    MinValue: 1
+
+  MinSize:
+    Type: Number
+    Description: Minimum number of instances for default queue
+    Default: 0
+    MinValue: 0
+
+  ScaleDownAdjustment:
+    Type: Number
+    Description: Number of instances to remove on scale down events (UnfinishedJobs == 0 for 30 mins)
+    Default: -1
+    MaxValue: 0
+
+  ScaleUpAdjustment:
+    Type: Number
+    Description: Number of instances to add on scale up events (ScheduledJobsCount > 0 for 1 min)
+    Default: 5
+    MinValue: 0
+
+  RootVolumeSize:
+    Type: Number
+    Description: Size of each instance's root EBS volume (in GB)
+    Default: 10
+    MinValue: 10

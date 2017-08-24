@@ -1,0 +1,98 @@
+#!/bin/bash
+
+set -e -o pipefail
+
+source ~/cfn-env
+
+export AWS_REGION
+export AWS_DEFAULT_REGION
+
+stack_status() {
+  local stack_name="$1"
+  aws cloudformation list-stacks --query "StackSummaries[?StackName == '$stack_name'].[StackStatus][0]" --output text
+}
+
+create_or_update_stack() {
+  local command="$1" && shift
+  local stack_name="$1" && shift
+  local template="$1" && shift
+  local params=()
+  local tags=(
+    "Key=Commit,Value=$COMMIT"
+    "Key=Branch,Value=$BRANCH"
+    "Key=BuildNumber,Value=$BUILD_NUMBER"
+    "Key=BuildUrl,Value=$BUILD_URL"
+  )
+
+  if [ -e "$template" ]; then
+    local template_option="--template-body"
+    template="file://${template}"
+  else
+    local template_option="--template-url"
+  fi
+
+  for param in "$@"; do
+    local key="${param%=*}"
+    local value="${param#*=}"
+
+    if [ -n "$value" ]; then
+      params+=("ParameterKey=\"$key\",ParameterValue=\"$value\"")
+    fi
+  done
+
+  aws cloudformation "$command" --stack-name "$stack_name" "$template_option" "$template" --capabilities CAPABILITY_NAMED_IAM --parameters "${params[@]}" --tags "${tags[@]}" --output text --query StackId 2>&1
+}
+
+main() {
+  local command="create-stack"
+  local stack_name="$1" && shift
+
+  case $(stack_status "$stack_name") in
+    CREATE_COMPLETE|UPDATE_COMPLETE|UPDATE_ROLLBACK_COMPLETE)
+      command="update-stack";;
+    *_IN_PROGRESS)
+      echo "$stack_name is currently in progress"
+      exit -1;;
+    *_FAILED)
+      echo "$stack_name is failed and cannot be updated"
+      exit -1;;
+  esac
+
+  if [ "$command" == "create-stack" ]; then
+    printf "Creating stack"
+  else
+    printf "Updating stack"
+  fi
+
+  local stack_id=$(create_or_update_stack "$command" "$stack_name" "$@")
+
+  if [[ "$stack_id" == *"No updates are to be performed"* ]]; then
+    printf "\n\nNo changes to $stack_name.\n"
+    exit 0
+  fi
+
+  while true; do
+    sleep 5
+    case $(stack_status "$stack_name") in
+      CREATE_COMPLETE)
+        printf "\n\n$stack_name has been created.\n"
+        exit 0;;
+      UPDATE_COMPLETE)
+        printf "\n\n$stack_name has been created.\n"
+        exit 0;;
+      CREATE_FAILED)
+        printf "\n\n$stack_name failed to be created.\n"
+        exit 1;;
+      ROLLBACK_FAILED)
+        printf "\n\n$stack_name failed to be created and could not roll back properly.\n"
+        exit 1;;
+      UPDATE_ROLLBACK_COMPLETE)
+        printf "\n\n$stack_name failed to update and was rolled back.\n"
+        exit 1;;
+      *)
+        printf "."
+    esac
+  done
+}
+
+main "$@"

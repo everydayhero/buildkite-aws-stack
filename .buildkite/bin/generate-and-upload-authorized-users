@@ -1,5 +1,0 @@
-#!/bin/bash -ie
-
-FILEPATH=authorized-users
-
-bin/generate-authorized-users "$FILEPATH" && buildkite-agent artifact upload "$FILEPATH"

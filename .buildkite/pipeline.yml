@@ -9,35 +9,47 @@ steps:
       BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
       BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
 
-  - name: ":terraform: Validate"
-    command: ".buildkite/bin/validate"
-
-  - name: ":cop: Users"
-    command: ".buildkite/bin/generate-and-upload-authorized-users"
-
-  - name: ":composer: Env"
-    command: ".buildkite/bin/generate-and-upload-env"
-
   - wait
 
-  - name: ":terraform: Plan"
-    command: "buildkite-agent artifact download \"*\" . && .buildkite/bin/plan"
+  - name: ":scroll: env"
+    command: "bin/generate-env env && bin/upload-secret env"
+    branches: master
+    agents:
+      queue: buildkite
+
+  - name: ":scroll: bootstrap"
+    command: "bin/upload-secret scripts/bootstrap"
+    branches: master
+    agents:
+      queue: buildkite
     env:
-      TF_VAR_authorized_users: authorized-users
-      TF_VAR_env_script: env
+      BUILDKITE_SECRETS_KEY: ""
+      BUILDKITE_USE_KMS: false
 
   - wait
 
-  - name: ":terraform: Apply"
-    command: "buildkite-agent artifact download \"*\" . && .buildkite/bin/apply"
+  - name: ":buildkite: Default Queue"
+    command: "bin/buildkite-stack default"
     branches: master
+    agents:
+      queue: buildkite
+    env:
+      BUILDKITE_QUEUE: default
+      INSTANCE_TYPE: m3.large
+      MIN_SIZE: 5
+      MAX_SIZE: 20
+      ROOT_VOLUME_SIZE: 100
 
-  - wait
-
-  - name: ":suspect: Test plain-utils pull"
-    command: "plain-utils pull payments-staging"
+  - name: ":buildkite: Build Queue"
+    command: "bin/buildkite-stack build"
     branches: master
-
-  - name: ":suspect: Test docker hub pull + push"
-    command: "docker pull everydayhero/hello_world:latest && docker push everydayhero/hello_world:latest"
-    branches: master
+    agents:
+      queue: buildkite
+    env:
+      BUILDKITE_QUEUE: build
+      INSTANCE_TYPE: m3.xlarge
+      MIN_SIZE: 1
+      MAX_SIZE: 1
+      ROOT_VOLUME_SIZE: 500
+      SCALE_UP_ADJUSTMENT: 1
+      AGENTS_PER_INSTANCE: 5

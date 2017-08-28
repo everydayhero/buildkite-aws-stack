@@ -1,0 +1,107 @@
+#!/bin/bash
+
+set -e -o pipefail
+
+BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+main() {
+  local stack_name="$1" && shift
+
+  for param in "$@"; do
+    case "$param" in
+      BuildkiteStackVersion=*)
+        BUILDKITE_STACK_VERSION="${param#*=}";;
+      KeyName=*)
+        KEY_NAME="${param#*=}";;
+      BuildkiteAgentRelease=*)
+        BUILDKITE_AGENT_RELEASE="${param#*=}";;
+      BuildkiteAgentToken=*)
+        BUILDKITE_AGENT_TOKEN="${param#*=}";;
+      BuildkiteApiAccessToken=*)
+        BUILDKITE_API_ACCESS_TOKEN="${param#*=}";;
+      BuildkiteOrgSlug=*)
+        BUILDKITE_ORG_SLUG="${param#*=}";;
+      BuildkiteQueue=*)
+        BUILDKITE_QUEUE="${param#*=}";;
+      AgentsPerInstance=*)
+        AGENTS_PER_INSTANCE="${param#*=}";;
+      SecretsBucket=*)
+        SECRETS_BUCKET="${param#*=}";;
+      ArtifactsBucket=*)
+        ARTIFACTS_BUCKET="${param#*=}";;
+      BootstrapScriptUrl=*)
+        BOOTSTRAP_SCRIPT_URL="${param#*=}";;
+      AuthorizedUsersUrl=*)
+        AUTHORIZED_USERS_URL="${param#*=}";;
+      VpcId=*)
+        VPC_ID="${param#*=}";;
+      Subnets=*)
+        SUBNETS="${param#*=}";;
+      AvailabilityZones=*)
+        AVAILABILITY_ZONES="${param#*=}";;
+      InstanceType=*)
+        INSTANCE_TYPE="${param#*=}";;
+      SpotPrice=*)
+        SPOT_PRICE="${param#*=}";;
+      MaxSize=*)
+        MAX_SIZE="${param#*=}";;
+      MinSize=*)
+        MIN_SIZE="${param#*=}";;
+      ScaleUpAdjustment=*)
+        SCALE_UP_ADJUSTMENT="${param#*=}";;
+      ScaleDownAdjustment=*)
+        SCALE_DOWN_ADJUSTMENT="${param#*=}";;
+      ScaleDownPeriod=*)
+        SCALE_DOWN_PERIOD="${param#*=}";;
+      RootVolumeSize=*)
+        ROOT_VOLUME_SIZE="${param#*=}";;
+      SecurityGroupId=*)
+        SECURITY_GROUP_ID="${param#*=}";;
+      ImageId=*)
+        IMAGE_ID="${param#*=}";;
+      ManagedPolicyARN=*)
+        MANAGED_POLICY_ARN="${param#*=}";;
+      ECRAccessPolicy=*)
+        ECR_ACCESS_POLICY="${param#*=}";;
+      AssociatePublicIpAddress=*)
+        ASSOCIATE_PUBLIC_IP_ADDRESS="${param#*=}";;
+    esac
+  done
+
+  local region="${AWS_DEFAULT_REGION:-us-east-1}"
+  local template_url="https://s3.${region}.amazonaws.com/buildkite-aws-stack/${BUILDKITE_STACK_VERSION:-latest}/aws-stack.json"
+  local template_file="$(mktemp -d -q)/aws-stack.json"
+
+  curl -s --output "$template_file" "$template_url"
+
+  $BIN/cloudformation "$stack_name" "$template_file" \
+    KeyName="$KEY_NAME" \
+    BuildkiteAgentRelease="$BUILDKITE_AGENT_RELEASE" \
+    BuildkiteAgentToken="$BUILDKITE_AGENT_TOKEN" \
+    BuildkiteApiAccessToken="$BUILDKITE_API_ACCESS_TOKEN" \
+    BuildkiteOrgSlug="$BUILDKITE_ORG_SLUG" \
+    BuildkiteQueue="$BUILDKITE_QUEUE" \
+    AgentsPerInstance="$AGENTS_PER_INSTANCE" \
+    SecretsBucket="$SECRETS_BUCKET" \
+    ArtifactsBucket="$ARTIFACTS_BUCKET" \
+    BootstrapScriptUrl="$BOOTSTRAP_SCRIPT_URL" \
+    AuthorizedUsersUrl="$AUTHORIZED_USERS_URL" \
+    VpcId="$VPC_ID" \
+    Subnets="$SUBNETS" \
+    AvailabilityZones="$AVAILABILITY_ZONES" \
+    InstanceType="$INSTANCE_TYPE" \
+    SpotPrice="$SPOT_PRICE" \
+    MaxSize="$MAX_SIZE" \
+    MinSize="$MIN_SIZE" \
+    ScaleUpAdjustment="$SCALE_UP_ADJUSTMENT" \
+    ScaleDownAdjustment="$SCALE_DOWN_ADJUSTMENT" \
+    ScaleDownPeriod="$SCALE_DOWN_PERIOD" \
+    RootVolumeSize="$ROOT_VOLUME_SIZE" \
+    SecurityGroupId="$SECURITY_GROUP_ID" \
+    ImageId="$IMAGE_ID" \
+    ManagedPolicyARN="$MANAGED_POLICY_ARN" \
+    ECRAccessPolicy="$ECR_ACCESS_POLICY" \
+    AssociatePublicIpAddress="$ASSOCIATE_PUBLIC_IP_ADDRESS"
+}
+
+main "$@"

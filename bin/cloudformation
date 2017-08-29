@@ -46,8 +46,9 @@ create_or_update_stack() {
 main() {
   local command="create-stack"
   local stack_name="$1" && shift
+  local status=$(stack_status "$stack_name")
 
-  case $(stack_status "$stack_name") in
+  case "$status" in
     CREATE_COMPLETE|UPDATE_COMPLETE|UPDATE_ROLLBACK_COMPLETE)
       command="update-stack";;
     *_IN_PROGRESS)
@@ -72,27 +73,30 @@ main() {
   fi
 
   while true; do
+    local status=$(stack_status "$stack_name")
+    [[ "$status" == *"_IN_PROGRESS" ]] || break
+    printf "."
     sleep 5
-    case $(stack_status "$stack_name") in
-      CREATE_COMPLETE)
-        printf "\n\n$stack_name has been created.\n"
-        exit 0;;
-      UPDATE_COMPLETE)
-        printf "\n\n$stack_name has been created.\n"
-        exit 0;;
-      CREATE_FAILED)
-        printf "\n\n$stack_name failed to be created.\n"
-        exit 1;;
-      ROLLBACK_FAILED)
-        printf "\n\n$stack_name failed to be created and could not roll back properly.\n"
-        exit 1;;
-      UPDATE_ROLLBACK_COMPLETE)
-        printf "\n\n$stack_name failed to update and was rolled back.\n"
-        exit 1;;
-      *)
-        printf "."
-    esac
   done
+
+  echo "$status"
+  case "$status" in
+    CREATE_COMPLETE)
+      printf "\n\n$stack_name has been created.\n"
+      exit 0;;
+    UPDATE_COMPLETE)
+      printf "\n\n$stack_name has been created.\n"
+      exit 0;;
+    CREATE_FAILED|ROLLBACK_COMPLETE)
+      printf "\n\n$stack_name failed to be created.\n"
+      exit 1;;
+    ROLLBACK_FAILED)
+      printf "\n\n$stack_name failed to be created and could not roll back properly.\n"
+      exit 1;;
+    UPDATE_ROLLBACK_COMPLETE)
+      printf "\n\n$stack_name failed to update and was rolled back.\n"
+      exit 1;;
+  esac
 }
 
 main "$@"

@@ -36,7 +36,7 @@ steps:
       queue: buildkite
     env:
       BUILDKITE_QUEUE: default
-      INSTANCE_TYPE: m4.large
+      INSTANCE_TYPE: m3.large
       MIN_SIZE: 5
       MAX_SIZE: 20
       ROOT_VOLUME_SIZE: 100
@@ -48,7 +48,7 @@ steps:
       queue: buildkite
     env:
       BUILDKITE_QUEUE: build
-      INSTANCE_TYPE: m4.xlarge
+      INSTANCE_TYPE: m3.xlarge
       MIN_SIZE: 1
       MAX_SIZE: 1
       ROOT_VOLUME_SIZE: 500

@@ -25,6 +25,7 @@ steps:
     env:
       BUILDKITE_SECRETS_KEY: ""
       BUILDKITE_USE_KMS: false
+      BUILDKITE_S3_ACL: public-read
 
   - wait
 

@@ -31,7 +31,6 @@ steps:
 
   - name: ":buildkite: Default Queue"
     command: "bin/buildkite-stack default"
-    branches: master
     agents:
       queue: buildkite
     env:
@@ -43,7 +42,6 @@ steps:
 
   - name: ":buildkite: Build Queue"
     command: "bin/buildkite-stack build"
-    branches: master
     agents:
       queue: buildkite
     env:
@@ -57,6 +55,5 @@ steps:
 
   - name: ":buildkite: Packer Queue"
     command: "bin/buildkite-stack packer packer-stack.yml BuildStack=$BUILD_STACK"
-    branches: master
     agents:
       queue: buildkite

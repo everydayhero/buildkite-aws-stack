@@ -6,6 +6,7 @@ BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
   local stack_name="$1" && shift
+  local args=()
 
   for param in "$@"; do
     case "$param" in
@@ -65,6 +66,8 @@ main() {
         ECR_ACCESS_POLICY="${param#*=}";;
       AssociatePublicIpAddress=*)
         ASSOCIATE_PUBLIC_IP_ADDRESS="${param#*=}";;
+      *)
+        args+=("$param")
     esac
   done
 
@@ -101,7 +104,8 @@ main() {
     ImageId="$IMAGE_ID" \
     ManagedPolicyARN="$MANAGED_POLICY_ARN" \
     ECRAccessPolicy="$ECR_ACCESS_POLICY" \
-    AssociatePublicIpAddress="$ASSOCIATE_PUBLIC_IP_ADDRESS"
+    AssociatePublicIpAddress="$ASSOCIATE_PUBLIC_IP_ADDRESS" \
+    "${args[@]}"
 }
 
 main "$@"

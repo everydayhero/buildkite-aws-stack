@@ -6,6 +6,7 @@ BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
   local stack_name="$1" && shift
+  local template="$1" && shift
   local args=()
 
   for param in "$@"; do
@@ -72,12 +73,15 @@ main() {
   done
 
   local region="${AWS_DEFAULT_REGION:-us-east-1}"
-  local template_url="https://s3.${region}.amazonaws.com/buildkite-aws-stack/${BUILDKITE_STACK_VERSION:-latest}/aws-stack.json"
-  local template_file="$(mktemp -d -q)/aws-stack.json"
 
-  curl -s --output "$template_file" "$template_url"
+  if [ -z "$template" ];
+    local template_url="https://s3.${region}.amazonaws.com/buildkite-aws-stack/${BUILDKITE_STACK_VERSION:-latest}/aws-stack.json"
+    local template="$(mktemp -d -q)/aws-stack.json"
+    curl -s --output "$template" "$template_url"
+  fi
 
-  $BIN/cloudformation "$stack_name" "$template_file" \
+
+  $BIN/cloudformation "$stack_name" "$template" \
     KeyName="$KEY_NAME" \
     BuildkiteAgentRelease="$BUILDKITE_AGENT_RELEASE" \
     BuildkiteAgentToken="$BUILDKITE_AGENT_TOKEN" \

@@ -74,7 +74,7 @@ main() {
 
   local region="${AWS_DEFAULT_REGION:-us-east-1}"
 
-  if [ -z "$template" ];
+  if [ -z "$template" ]; then
     local template_url="https://s3.${region}.amazonaws.com/buildkite-aws-stack/${BUILDKITE_STACK_VERSION:-latest}/aws-stack.json"
     local template="$(mktemp -d -q)/aws-stack.json"
     curl -s --output "$template" "$template_url"

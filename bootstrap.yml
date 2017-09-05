@@ -349,6 +349,7 @@ Parameters:
 
   KeyName:
     Type: 'AWS::EC2::KeyPair::KeyName'
+    MinLength: 1
 
   InstanceType:
     Type: String

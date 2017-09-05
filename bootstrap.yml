@@ -304,6 +304,11 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-ArtifactsBucket
 
+  KeyName:
+    Value: !Ref KeyName
+    Export:
+      Name: !Sub ${AWS::StackName}-KeyName
+
 Parameters:
   ArtifactLifespan:
     Type: Number
@@ -344,6 +349,7 @@ Parameters:
 
   KeyName:
     Type: 'AWS::EC2::KeyPair::KeyName'
+    MinLength: 1
 
   InstanceType:
     Type: String

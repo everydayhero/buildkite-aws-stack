@@ -83,8 +83,7 @@ main() {
     curl -s --output "$TEMPLATE" "$template_url"
   fi
 
-
-  echo $BIN/cloudformation "$stack_name" "$TEMPLATE" \
+  $BIN/cloudformation "$stack_name" "$TEMPLATE" \
     KeyName="$KEY_NAME" \
     BuildkiteAgentRelease="$BUILDKITE_AGENT_RELEASE" \
     BuildkiteAgentToken="$BUILDKITE_AGENT_TOKEN" \

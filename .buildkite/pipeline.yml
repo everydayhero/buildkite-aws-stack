@@ -54,6 +54,8 @@ steps:
       AGENTS_PER_INSTANCE: 5
 
   - name: ":buildkite: Packer Queue"
-    command: "bin/buildkite-stack packer packer-stack.yml BuildStack=$BUILD_STACK"
+    command: "bin/buildkite-stack packer BuildStack=$BUILD_STACK"
     agents:
       queue: buildkite
+    env:
+      TEMPLATE: packer-stack.yml

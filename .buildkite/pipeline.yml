@@ -54,9 +54,3 @@ steps:
       ROOT_VOLUME_SIZE: 500
       SCALE_UP_ADJUSTMENT: 1
       AGENTS_PER_INSTANCE: 5
-
-  - name: ":buildkite: Packer Queue"
-    command: "bin/buildkite-stack packer packer-stack.yml BuildStack=$BUILD_STACK"
-    branches: master
-    agents:
-      queue: buildkite

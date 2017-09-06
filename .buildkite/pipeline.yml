@@ -30,7 +30,7 @@ steps:
   - wait
 
   - name: ":buildkite: Default Queue"
-    command: "bin/buildkite-stack default"
+    command: "bin/stack default"
     branches: master
     agents:
       queue: buildkite
@@ -42,7 +42,7 @@ steps:
       ROOT_VOLUME_SIZE: 100
 
   - name: ":buildkite: Build Queue"
-    command: "bin/buildkite-stack build"
+    command: "bin/stack build"
     branches: master
     agents:
       queue: buildkite

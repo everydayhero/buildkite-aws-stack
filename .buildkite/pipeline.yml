@@ -30,7 +30,7 @@ steps:
   - wait
 
   - name: ":buildkite: Default Queue"
-    command: "bin/buildkite-stack default"
+    command: "bin/stack default"
     branches: master
     agents:
       queue: buildkite
@@ -42,7 +42,7 @@ steps:
       ROOT_VOLUME_SIZE: 100
 
   - name: ":buildkite: Build Queue"
-    command: "bin/buildkite-stack build"
+    command: "bin/stack build"
     branches: master
     agents:
       queue: buildkite
@@ -54,9 +54,3 @@ steps:
       ROOT_VOLUME_SIZE: 500
       SCALE_UP_ADJUSTMENT: 1
       AGENTS_PER_INSTANCE: 5
-
-  - name: ":buildkite: Packer Queue"
-    command: "bin/buildkite-stack packer packer-stack.yml BuildStack=$BUILD_STACK"
-    branches: master
-    agents:
-      queue: buildkite

@@ -3,56 +3,6 @@ env:
   BUILDKITE_S3_ACL: private
 
 steps:
-  - name: ":terminal: Test"
-    command: "bin/run-tests"
-    env:
-      BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
-      BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
-
-  - wait
-
-  - name: ":scroll: env"
-    command: "bin/generate-env env && bin/upload-secret env"
-    branches: master
-    agents:
-      queue: buildkite
-
-  - name: ":scroll: bootstrap"
-    command: "bin/upload-secret scripts/bootstrap"
-    branches: master
-    agents:
-      queue: buildkite
-    env:
-      BUILDKITE_SECRETS_KEY: ""
-      BUILDKITE_USE_KMS: false
-      BUILDKITE_S3_ACL: public-read
-
-  - wait
-
-  - name: ":buildkite: Default Queue"
-    command: "bin/buildkite-stack default"
-    agents:
-      queue: buildkite
-    env:
-      BUILDKITE_QUEUE: default
-      INSTANCE_TYPE: m3.large
-      MIN_SIZE: 5
-      MAX_SIZE: 20
-      ROOT_VOLUME_SIZE: 100
-
-  - name: ":buildkite: Build Queue"
-    command: "bin/buildkite-stack build"
-    agents:
-      queue: buildkite
-    env:
-      BUILDKITE_QUEUE: build
-      INSTANCE_TYPE: m3.xlarge
-      MIN_SIZE: 1
-      MAX_SIZE: 1
-      ROOT_VOLUME_SIZE: 500
-      SCALE_UP_ADJUSTMENT: 1
-      AGENTS_PER_INSTANCE: 5
-
   - name: ":buildkite: Packer Queue"
     command: "bin/buildkite-stack packer BuildStack=$BUILD_STACK"
     agents:

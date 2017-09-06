@@ -14,7 +14,6 @@ Resources:
         BuildkiteOrgSlug: !Ref BuildkiteOrgSlug
         BuildkiteQueue: !Ref BuildkiteQueue
         InstanceType: !Ref InstanceType
-        ManagedPolicyARN: !Ref ManagedPolicy
         MaxSize: !Ref MaxSize
         MinSize: !Ref MinSize
         RootVolumeSize: !Ref RootVolumeSize

@@ -253,6 +253,9 @@ Resources:
               - cloudformation:List*
               - cloudformation:Describe*
               - cloudformation:*Template*
+              - lambda:ListTags
+              - lambda:TagResource
+              - lambda:UntagResource
               - sns:Describe*
               - lambda:Describe*
               - s3:Get*

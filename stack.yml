@@ -45,7 +45,11 @@ Resources:
         Statement:
           - Effect: Allow
             Action: s3:Put*
-            Resource: !Sub arn:aws:s3:::${SecretsBucket}/terraform/*
+            Resource:
+              Fn::Sub:
+                - 'arn:aws:s3:::${SecretsBucket}/terraform/*'
+                - SecretsBucket:
+                    Fn::ImportValue: !Sub ${BuildStack}-SecretsBucket
           - Effect: Allow
             Action: sts:AssumeRole
             Resource: !Ref AccountRoles

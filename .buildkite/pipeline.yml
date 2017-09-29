@@ -18,14 +18,13 @@ steps:
       queue: buildkite
 
   - name: ":scroll: bootstrap"
-    command: "bin/upload-secret scripts/bootstrap"
+    command: "bin/upload-secret --public-read scripts/bootstrap"
     branches: master
     agents:
       queue: buildkite
     env:
       BUILDKITE_SECRETS_KEY: ""
       BUILDKITE_USE_KMS: false
-      BUILDKITE_S3_ACL: public-read
 
   - wait
 

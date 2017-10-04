@@ -44,12 +44,15 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Action: s3:Put*
+            Action: s3:PutObject
             Resource:
               Fn::Sub:
                 - 'arn:aws:s3:::${SecretsBucket}/terraform/*'
                 - SecretsBucket:
                     Fn::ImportValue: !Sub ${BuildStack}-SecretsBucket
+            Condition:
+              StringEquals:
+                s3:x-amz-server-side-encryption: [ 'AES256', 'true' ]
           - Effect: Allow
             Action: sts:AssumeRole
             Resource: !Ref AccountRoles

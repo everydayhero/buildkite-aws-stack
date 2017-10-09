@@ -17,11 +17,9 @@ Host bastion-* *.plain.edh.ro
 
 Host bastion-production
   Hostname bastion.everydayhero.io
-  Port 2020
 
 Host bastion-staging
   Hostname bastion.everydayhero-staging.io
-  Port 2020
 
 Host production-*.plain.edh.ro
   ProxyCommand ssh -q bastion-production 'ncat \\\`echo %h | cut -f 1-1 -d.\\\` %p'

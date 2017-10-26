@@ -1,0 +1,194 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  Stack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/buildkite-aws-stack/${BuildkiteStackVersion}/aws-stack.json
+      Parameters:
+        AgentsPerInstance: !Ref AgentsPerInstance
+        AssociatePublicIpAddress: false
+        BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
+        BuildkiteAgentToken: !Ref BuildkiteAgentToken
+        BuildkiteApiAccessToken: !Ref BuildkiteApiAccessToken
+        BuildkiteOrgSlug: !Ref BuildkiteOrgSlug
+        BuildkiteQueue: !Ref BuildkiteQueue
+        InstanceType: !Ref InstanceType
+        ManagedPolicyARN: !Ref PackerManagedPolicy
+        MaxSize: !Ref MaxSize
+        MinSize: !Ref MinSize
+        RootVolumeSize: !Ref RootVolumeSize
+        ScaleDownAdjustment: !Ref ScaleDownAdjustment
+        ScaleUpAdjustment: !Ref ScaleUpAdjustment
+        BootstrapScriptUrl:
+          Fn::Sub:
+            - 'https://s3.amazonaws.com/${SecretsBucket}/scripts/bootstrap'
+            - SecretsBucket:
+                Fn::ImportValue: !Sub ${BuildStack}-SecretsBucket
+        KeyName:
+          Fn::ImportValue: !Sub ${BuildStack}-KeyName
+        ArtifactsBucket:
+          Fn::ImportValue: !Sub ${BuildStack}-ArtifactsBucket
+        SecretsBucket:
+          Fn::ImportValue: !Sub ${BuildStack}-SecretsBucket
+        Subnets:
+          Fn::ImportValue: !Sub ${BuildStack}-Subnets
+        VpcId:
+          Fn::ImportValue: !Sub ${BuildStack}-VpcId
+
+  PackerManagedPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: PackerManagedPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:AttachVolume
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:CopyImage
+              - ec2:CreateImage
+              - ec2:CreateKeypair
+              - ec2:CreateSecurityGroup
+              - ec2:CreateSnapshot
+              - ec2:CreateTags
+              - ec2:CreateVolume
+              - ec2:DeleteKeypair
+              - ec2:DeleteSecurityGroup
+              - ec2:DeleteSnapshot
+              - ec2:DeleteVolume
+              - ec2:DeregisterImage
+              - ec2:DescribeImageAttribute
+              - ec2:DescribeImages
+              - ec2:DescribeInstances
+              - ec2:DescribeRegions
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeSnapshots
+              - ec2:DescribeSubnets
+              - ec2:DescribeTags
+              - ec2:DescribeVolumes
+              - ec2:DetachVolume
+              - ec2:GetPasswordData
+              - ec2:ModifyImageAttribute
+              - ec2:ModifyInstanceAttribute
+              - ec2:ModifySnapshotAttribute
+              - ec2:RegisterImage
+              - ec2:RunInstances
+              - ec2:StopInstances
+              - ec2:TerminateInstances
+            Resource: '*'
+            Condition:
+              StringEqualsIfExists:
+                ec2:Region: !Ref AWS::Region
+                ec2:Vpc: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${AllowedVpc}
+                ec2:Subnet: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${AllowedSubnet}
+                ec2:InstanceType: !Ref AllowedInstanceTypes
+
+Outputs:
+  VpcId:
+    Value: !Ref AllowedVpc
+    Export:
+      Name: !Sub ${BuildStack}-PackerVpcId
+  SubnetId:
+    Value: !Ref AllowedSubnet
+    Export:
+      Name: !Sub ${BuildStack}-PackerSubnetId
+
+Parameters:
+  BuildStack:
+    Type: String
+    MinLength: 1
+    Description: The CloudFormation stack to import VPC and Subnets from
+
+  BuildkiteAgentToken:
+    Type: String
+    Description: Buildkite agent token
+    NoEcho: true
+    MinLength: 1
+
+  BuildkiteApiAccessToken:
+    Type: String
+    Description: Buildkite API access token with read_pipelines, read_builds and read_agents (required for metrics)
+    NoEcho: true
+    MinLength: 1
+
+  BuildkiteOrgSlug:
+    Type: String
+    Description: Buildkite organization slug
+    MinLength: 1
+
+  BuildkiteQueue:
+    Type: String
+    Description: 'Queue name that agents will use, targeted in pipeline steps using "queue={value}"'
+    Default: packer
+    MinLength: 1
+
+  BuildkiteAgentRelease:
+    Type: String
+    Default: stable
+    AllowedValues:
+      - stable
+      - beta
+      - edge
+
+  BuildkiteStackVersion:
+    Type: String
+    Description: The version of the Buildkite elastic stack for AWS
+    Default: latest
+    MinLength: 1
+
+  InstanceType:
+    Type: String
+    Description: Instance type
+    Default: t2.nano
+    MinLength: 1
+
+  AgentsPerInstance:
+    Type: Number
+    Description: Number of Buildkite agents to run on each instance
+    Default: 1
+    MinValue: 1
+
+  MaxSize:
+    Type: Number
+    Description: Maximum number of instances for default queue
+    Default: 1
+    MinValue: 1
+
+  MinSize:
+    Type: Number
+    Description: Minimum number of instances for default queue
+    Default: 0
+    MinValue: 0
+
+  ScaleDownAdjustment:
+    Type: Number
+    Description: Number of instances to remove on scale down events (UnfinishedJobs == 0 for 30 mins)
+    Default: -1
+    MaxValue: 0
+
+  ScaleUpAdjustment:
+    Type: Number
+    Description: Number of instances to add on scale up events (ScheduledJobsCount > 0 for 1 min)
+    Default: 5
+    MinValue: 0
+
+  RootVolumeSize:
+    Type: Number
+    Description: Size of each instance's root EBS volume (in GB)
+    Default: 10
+    MinValue: 10
+
+  AllowedVpc:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: The VPC permitted to launch EC2 instances
+
+  AllowedSubnet:
+    Type: 'AWS::EC2::Subnet::Id'
+    Description: The subnet permitted to launch EC2 instances
+
+  AllowedInstanceTypes:
+    Type: CommaDelimitedList
+    Description: The EC2 instance types permitted
+    Default: t2.nano

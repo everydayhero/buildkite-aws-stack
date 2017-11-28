@@ -88,7 +88,13 @@ plain_pipeline_env() {
 }
 
 plain_services_docker_network() {
-  echo 'docker network prune --force'
+  cat <<EOT
+(
+  flock -e 200
+  docker network prune --force
+) 200>/tmp/prune.lock
+EOT
+
   echo 'plain-services-docker init'
 }
 

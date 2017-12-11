@@ -70,6 +70,9 @@ configure_ssh() {
 
   cat <<EOT
 cat <<SSH_CONFIG > ~/.ssh/config
+Host *
+  ServerAliveInterval 120
+
 Host bastion-* *.plain.edh.ro
   ForwardAgent yes
   TCPKeepAlive yes

@@ -20,6 +20,7 @@ Resources:
         RootVolumeSize: !Ref RootVolumeSize
         ScaleDownAdjustment: !Ref ScaleDownAdjustment
         ScaleUpAdjustment: !Ref ScaleUpAdjustment
+        SpotPrice: !Ref SpotPrice
         BootstrapScriptUrl:
           Fn::Sub:
             - 'https://s3.amazonaws.com/${SecretsBucket}/scripts/bootstrap'
@@ -138,6 +139,11 @@ Parameters:
     Description: Number of instances to add on scale up events (ScheduledJobsCount > 0 for 1 min)
     Default: 5
     MinValue: 0
+
+  SpotPrice:
+    Description: Spot bid price to use for the instances. 0 means normal (non-spot) instances
+    Type: String
+    Default: 0
 
   RootVolumeSize:
     Type: Number

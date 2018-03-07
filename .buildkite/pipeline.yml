@@ -36,9 +36,22 @@ steps:
     env:
       BUILDKITE_QUEUE: default
       INSTANCE_TYPE: m3.large
-      MIN_SIZE: 5
+      MIN_SIZE: 0
       MAX_SIZE: 20
       ROOT_VOLUME_SIZE: 100
+
+  - name: ":buildkite: Default Queue (Spot Fleet)"
+    command: "bin/stack default-spot"
+    branches: master
+    agents:
+      queue: buildkite
+    env:
+      BUILDKITE_QUEUE: default
+      INSTANCE_TYPE: m3.large
+      MIN_SIZE: 5
+      MAX_SIZE: 5
+      ROOT_VOLUME_SIZE: 100
+      SPOT_PRICE: 0.1340
 
   - name: ":buildkite: Build Queue"
     command: "bin/stack build"

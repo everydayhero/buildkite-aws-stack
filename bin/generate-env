@@ -66,6 +66,7 @@ configure_plain() {
   fi
 ) 200>/tmp/$repo.lock
 export PATH="${code_dir}/${repo}/bin:\$PATH"
+export VAULT_PASSWORD="${VAULT_PASSWORD}"
 EOT
   done
 }

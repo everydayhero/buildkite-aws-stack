@@ -44,7 +44,7 @@ install_ansible() {
   echo "Installing ansible..."
   sudo yum -y groupinstall "Development Tools"
   sudo yum install -y gcc-c++ patch readline readline-devel libffi-devel openssl-devel
-  sudo pip install --install-option="--install-scripts=/usr/bin" "ansible<2.4" boto netaddr
+  sudo pip install --install-option="--install-scripts=/usr/bin" "ansible<2.4" boto netaddr docker-py
   echo "Finished installing ansible"
 }
 

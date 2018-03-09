@@ -40,7 +40,7 @@ Resources:
   ManagedPolicy:
     Type: 'AWS::IAM::ManagedPolicy'
     Properties:
-      ManagedPolicyName: ManagedPolicy
+      ManagedPolicyName: DefaultSpotManagedPolicy
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -57,9 +57,6 @@ Resources:
           - Effect: Allow
             Action: sts:AssumeRole
             Resource: !Ref AccountRoles
-          - Effect: Allow
-            Action: ecr:*
-            Resource: "*"
 
 Parameters:
   BuildStack:

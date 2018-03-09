@@ -52,6 +52,7 @@ steps:
       MAX_SIZE: 5
       ROOT_VOLUME_SIZE: 100
       SPOT_PRICE: 0.1340
+      TEMPLATE: stack-spot.yml
 
   - name: ":buildkite: Build Queue"
     command: "bin/stack build"

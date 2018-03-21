@@ -40,7 +40,12 @@ create_or_update_stack() {
     fi
   done
 
-  aws cloudformation "$command" --stack-name "$stack_name" "$template_option" "$template" --capabilities CAPABILITY_NAMED_IAM --parameters "${params[@]}" --tags "${tags[@]}" --output text --query StackId 2>&1
+  local update_template=""
+  if [[ "$command" == "update-stack" ]]; then
+    update_template="--no-use-previous-template"
+  fi
+
+  aws cloudformation "$command" --stack-name "$stack_name" "$update_template" "$template_option" "$template" --capabilities CAPABILITY_NAMED_IAM --parameters "${params[@]}" --tags "${tags[@]}" --output text --query StackId 2>&1
 }
 
 main() {

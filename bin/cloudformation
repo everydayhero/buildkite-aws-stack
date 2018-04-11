@@ -12,17 +12,24 @@ stack_status() {
   aws cloudformation list-stacks --query "StackSummaries[?StackName == '$stack_name'].[StackStatus][0]" --output text
 }
 
+stack_parameters() {
+  local stack_name="$1"
+  aws cloudformation describe-stacks --stack-name "$stack_name" --query 'Stacks[].Parameters[].ParameterKey[]' --output text
+}
+
+includes_value() {
+  local value="$1" && shift
+  for item in "$@"; do [[ "$value" == "$item" ]] && return 0; done
+  return 1
+}
+
 create_or_update_stack() {
   local command="$1" && shift
   local stack_name="$1" && shift
   local template="$1" && shift
+  local used_param_keys=()
   local params=()
-  local tags=(
-    "Key=Commit,Value=$COMMIT"
-    "Key=Branch,Value=$BRANCH"
-    "Key=BuildNumber,Value=$BUILD_NUMBER"
-    "Key=BuildUrl,Value=$BUILD_URL"
-  )
+  local tags=()
 
   if [ -e "$template" ]; then
     local template_option="--template-body"
@@ -36,69 +43,78 @@ create_or_update_stack() {
     local value="${param#*=}"
 
     if [ -n "$value" ]; then
-      params+=("ParameterKey=\"$key\",ParameterValue=\"$value\"")
+      case "$key" in
+        +*)
+          tags+=("Key=\"${key:1}\",Value=\"$value\"");;
+        *)
+          used_param_keys+=("$key")
+          params+=("ParameterKey=\"$key\",ParameterValue=\"$value\"");;
+      esac
     fi
   done
 
   local update_template=""
   if [[ "$command" == "update-stack" ]]; then
-    update_template="--no-use-previous-template"
+    local update_template="--no-use-previous-template"
+
+    for key in $(stack_parameters "$stack_name"); do
+      if ! includes_value "$key" "${used_param_keys[@]}"; then
+        params+=("ParameterKey=\"$key\",UsePreviousValue=true")
+      fi
+    done
   fi
 
   aws cloudformation "$command" --stack-name "$stack_name" "$update_template" "$template_option" "$template" --capabilities CAPABILITY_NAMED_IAM --parameters "${params[@]}" --tags "${tags[@]}" --output text --query StackId 2>&1
 }
 
 main() {
-  local command="create-stack"
   local stack_name="$1" && shift
   local status=$(stack_status "$stack_name")
 
   case "$status" in
-    CREATE_COMPLETE|UPDATE_COMPLETE|UPDATE_ROLLBACK_COMPLETE)
-      command="update-stack";;
-    *_IN_PROGRESS)
+    *_IN_PROGRESS*)
       echo "$stack_name is currently in progress"
       exit -1;;
-    *_FAILED)
+    *_FAILED*)
       echo "$stack_name is failed and cannot be updated"
       exit -1;;
+    CREATE_COMPLETE*|UPDATE_COMPLETE*|UPDATE_ROLLBACK_COMPLETE*)
+      local command="update-stack";;
+      printf "Updating stack"
+    *)
+      local command="create-stack";;
+      printf "Creating stack"
   esac
-
-  if [ "$command" == "create-stack" ]; then
-    printf "Creating stack"
-  else
-    printf "Updating stack"
-  fi
 
   local stack_id=$(create_or_update_stack "$command" "$stack_name" "$@")
 
-  if [[ "$stack_id" == *"No updates are to be performed"* ]]; then
+  if [[ "$stack_id" == *No updates are to be performed* ]]; then
     printf "\n\nNo changes to $stack_name.\n"
     exit 0
   fi
 
   while true; do
     local status=$(stack_status "$stack_name")
-    [[ "$status" == *"_IN_PROGRESS" ]] || break
+    [[ "$status" == *_IN_PROGRESS* ]] || break
     printf "."
     sleep 5
   done
 
   echo "$status"
   case "$status" in
-    CREATE_COMPLETE)
+    CREATE_COMPLETE*)
       printf "\n\n$stack_name has been created.\n"
       exit 0;;
-    UPDATE_COMPLETE)
+    UPDATE_COMPLETE*)
       printf "\n\n$stack_name has been created.\n"
       exit 0;;
-    CREATE_FAILED|ROLLBACK_COMPLETE)
+    CREATE_FAILED*|ROLLBACK_COMPLETE*)
       printf "\n\n$stack_name failed to be created.\n"
       exit 1;;
-    ROLLBACK_FAILED)
+    ROLLBACK_FAILED*)
       printf "\n\n$stack_name failed to be created and could not roll back properly.\n"
       exit 1;;
-    UPDATE_ROLLBACK_COMPLETE)
+    UPDATE_ROLLBACK_COMPLETE*)
       printf "\n\n$stack_name failed to update and was rolled back.\n"
       exit 1;;
   esac

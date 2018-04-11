@@ -40,7 +40,7 @@ Resources:
   ManagedPolicy:
     Type: 'AWS::IAM::ManagedPolicy'
     Properties:
-      ManagedPolicyName: ManagedPolicy
+      ManagedPolicyName: !Sub ${AWS::StackName}ManagedPolicy
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -54,9 +54,12 @@ Resources:
             Condition:
               StringEquals:
                 s3:x-amz-server-side-encryption: [ 'AES256', 'true' ]
-          - Effect: Allow
-            Action: sts:AssumeRole
-            Resource: !Ref AccountRoles
+          - !If
+            - AssumeRole
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Resource: !Ref AccountRoles
+            - !Ref AWS::NoValue
           - Effect: Allow
             Action: ecr:*
             Resource: "*"
@@ -155,3 +158,7 @@ Parameters:
     Type: 'CommaDelimitedList'
     Description: A comma separated list roles that can be assumed as
     Default: ''
+
+Conditions:
+  AssumeRole: !Not
+    - !Equals [ !Join [ ',', !Ref AccountRoles ], '' ]

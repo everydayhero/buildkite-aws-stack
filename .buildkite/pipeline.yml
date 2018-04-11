@@ -39,7 +39,7 @@ steps:
       MIN_SIZE: 3
       MAX_SIZE: 20
       ROOT_VOLUME_SIZE: 100
-      SPOT_PRICE: 0.1330
+      SPOT_PRICE: "0.1330"
 
   - name: ":buildkite: Build Queue"
     command: "bin/stack build +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"
@@ -54,7 +54,7 @@ steps:
       ROOT_VOLUME_SIZE: 500
       SCALE_UP_ADJUSTMENT: 1
       AGENTS_PER_INSTANCE: 5
-      SPOT_PRICE: 0.2660
+      SPOT_PRICE: "0.2660"
 
   - name: ":buildkite: Packer Queue"
     command: "bin/stack packer +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"

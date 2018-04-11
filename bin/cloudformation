@@ -29,12 +29,7 @@ create_or_update_stack() {
   local template="$1" && shift
   local used_param_keys=()
   local params=()
-  local tags=(
-    "Key=Commit,Value=$COMMIT"
-    "Key=Branch,Value=$BRANCH"
-    "Key=BuildNumber,Value=$BUILD_NUMBER"
-    "Key=BuildUrl,Value=$BUILD_URL"
-  )
+  local tags=()
 
   if [ -e "$template" ]; then
     local template_option="--template-body"

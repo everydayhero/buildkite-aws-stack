@@ -7,6 +7,11 @@ BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 main() {
   local stack_name="$1" && shift
   local template="${TEMPLATE:-stack.yml}"
+  local tags=()
+
+  for tag in $(env | grep "TAG_"); do
+    tags+=("+${tag:4}")
+  done
 
   $BIN/cloudformation "$stack_name" "$template" \
     BuildStack="$BUILD_STACK" \
@@ -25,6 +30,7 @@ main() {
     ScaleDownPeriod="$SCALE_DOWN_PERIOD" \
     RootVolumeSize="$ROOT_VOLUME_SIZE" \
     AccountRoles="$ACCOUNT_ROLES" \
+    "${tags[@]}"
     "$@"
 }
 

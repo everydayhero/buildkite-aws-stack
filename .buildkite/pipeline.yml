@@ -29,7 +29,7 @@ steps:
   - wait
 
   - name: ":buildkite: Default Queue"
-    command: "bin/stack default"
+    command: "bin/stack default +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"
     branches: master
     agents:
       queue: buildkite
@@ -42,7 +42,7 @@ steps:
       SPOT_PRICE: 0.1340
 
   - name: ":buildkite: Build Queue"
-    command: "bin/stack build"
+    command: "bin/stack build +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"
     branches: master
     agents:
       queue: buildkite
@@ -57,7 +57,7 @@ steps:
       SPOT_PRICE: 0.2670
 
   - name: ":buildkite: Packer Queue"
-    command: "bin/stack packer"
+    command: "bin/stack packer +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"
     branches: master
     agents:
       queue: buildkite

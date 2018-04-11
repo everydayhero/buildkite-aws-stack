@@ -88,7 +88,7 @@ main() {
 
   local stack_id=$(create_or_update_stack "$command" "$stack_name" "$@")
 
-  if [[ "$stack_id" == *No updates are to be performed* ]]; then
+  if [[ "$stack_id" == *"No updates are to be performed"* ]]; then
     printf "\n\nNo changes to $stack_name.\n"
     exit 0
   fi
@@ -100,13 +100,12 @@ main() {
     sleep 5
   done
 
-  echo "$status"
   case "$status" in
     CREATE_COMPLETE*)
       printf "\n\n$stack_name has been created.\n"
       exit 0;;
     UPDATE_COMPLETE*)
-      printf "\n\n$stack_name has been created.\n"
+      printf "\n\n$stack_name has been updated.\n"
       exit 0;;
     CREATE_FAILED*|ROLLBACK_COMPLETE*)
       printf "\n\n$stack_name failed to be created.\n"

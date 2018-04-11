@@ -8,6 +8,7 @@ steps:
     env:
       BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
       BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
+      SPOT_PRICE: "0.123"
 
   - wait
 

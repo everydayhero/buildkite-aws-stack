@@ -30,7 +30,7 @@ main() {
     ScaleDownPeriod="$SCALE_DOWN_PERIOD" \
     RootVolumeSize="$ROOT_VOLUME_SIZE" \
     AccountRoles="$ACCOUNT_ROLES" \
-    "${tags[@]}"
+    "${tags[@]}" \
     "$@"
 }
 

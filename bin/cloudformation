@@ -79,11 +79,11 @@ main() {
       echo "$stack_name is failed and cannot be updated"
       exit -1;;
     CREATE_COMPLETE*|UPDATE_COMPLETE*|UPDATE_ROLLBACK_COMPLETE*)
-      local command="update-stack";;
-      printf "Updating stack"
+      local command="update-stack"
+      printf "Updating stack";;
     *)
-      local command="create-stack";;
-      printf "Creating stack"
+      local command="create-stack"
+      printf "Creating stack";;
   esac
 
   local stack_id=$(create_or_update_stack "$command" "$stack_name" "$@")

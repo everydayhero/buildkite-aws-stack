@@ -38,7 +38,7 @@ steps:
       INSTANCE_TYPE: m3.large
       MIN_SIZE: 3
       MAX_SIZE: 20
-      ROOT_VOLUME_SIZE: 100
+      ROOT_VOLUME_SIZE: 60
       SPOT_PRICE: "0.1330"
 
   - name: ":buildkite: Build Queue"

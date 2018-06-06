@@ -8,7 +8,7 @@ cat <<SSH_CONFIG > ~/.ssh/config
 Host *
   ServerAliveInterval 120
 
-Host bastion-* *.plain.edh.ro
+Host bastion-* *.plain.edh.ro production-* staging-* 10.21.* 10.28.*
   ForwardAgent yes
   TCPKeepAlive yes
   ServerAliveInterval 300
@@ -29,6 +29,12 @@ Host production-*.plain.edh.ro
 
 Host staging-*.plain.edh.ro
   ProxyCommand ssh -q bastion-staging -W \\\`echo %h | cut -f 1-1 -d.\\\`:%p
+
+Host 10.28.* production-*
+  ProxyCommand ssh -q bastion-production -W %h:%p
+
+Host 10.21.* staging-*
+  ProxyCommand ssh -q bastion-staging -W %h:%p
 
 Host github.com
   StrictHostKeyChecking no

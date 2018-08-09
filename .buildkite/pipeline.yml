@@ -5,9 +5,10 @@ env:
 steps:
   - name: ":terminal: Test"
     command: "bin/run-tests"
-    env:
-      BUILDKITE_DOCKER_COMPOSE_CONTAINER: app
-      BUILDKITE_DOCKER_COMPOSE_FILE: docker-compose.test.yml
+    plugins:
+      docker-compose#v2.5.1:
+        run: app
+        config: docker-compose.test.yml
 
   - wait
 

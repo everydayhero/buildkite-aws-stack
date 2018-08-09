@@ -268,8 +268,6 @@ Resources:
         AssociatePublicIpAddress: false
         BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
         BuildkiteAgentToken: !Ref BuildkiteAgentToken
-        BuildkiteApiAccessToken: !Ref BuildkiteApiAccessToken
-        BuildkiteOrgSlug: !Ref BuildkiteOrgSlug
         BuildkiteQueue: !Ref BuildkiteQueue
         InstanceType: !Ref InstanceType
         KeyName: !Ref KeyName
@@ -320,17 +318,6 @@ Parameters:
     Type: String
     Description: Buildkite agent token
     NoEcho: true
-    MinLength: 1
-
-  BuildkiteApiAccessToken:
-    Type: String
-    Description: Buildkite API access token with read_pipelines, read_builds and read_agents (required for metrics)
-    NoEcho: true
-    MinLength: 1
-
-  BuildkiteOrgSlug:
-    Type: String
-    Description: Buildkite organization slug
     MinLength: 1
 
   BuildkiteQueue:

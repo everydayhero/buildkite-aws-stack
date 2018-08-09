@@ -1,6 +1,6 @@
 FROM amazonlinux
 
-RUN yum install -y sudo python27 python27-pip python27-devel wget
+RUN yum install -y sudo python2 python2-pip python2-devel wget
 ADD . /app
 
 WORKDIR /app

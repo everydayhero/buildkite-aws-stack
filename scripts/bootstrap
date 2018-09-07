@@ -8,34 +8,52 @@ TERRAFORM_SHA256=6b8ce67647a59b2a3f70199c304abca0ddec0e49fd060944c26f666298e2341
 PACKER_VERSION=1.2.2
 PACKER_SHA256=6575f8357a03ecad7997151234b1b9f09c7a5cf91c194b23a461ee279d68c6a8
 
-download_from_hashicorp() {
-  local app="$1"
-  local version="$2"
-  local dest="$3"
+TERMINAL_TO_HTML_VERSION=3.1.0
 
-  wget -q "https://releases.hashicorp.com/${app}/${version}/${app}_${version}_linux_amd64.zip" -O "$dest"
+download_and_install() {
+  local url="$1"
+  local sha="${2:-}"
+  local filename=$(basename "$url")
+  local dest="/tmp/${filename}"
+
+  printf "Downloading %s... " "$url"
+  curl -L -s -o "$dest" "$url" && echo "DONE" || echo "FAIL"
+
+  if [ -n "$sha" ]; then
+    printf "Verifying %s... " "$filename"
+    echo "$sha $dest" | sha256sum --check --strict && echo "DONE" || echo "FAIL"
+  fi
+
+  printf "Unpacking %s... " "$filename"
+  unpack "$dest" /usr/bin/ && echo "DONE" || echo "FAIL"
+  rm -rf "$dest"
 }
 
-checksum_file() {
+unpack() {
   local file="$1"
-  local sha="$2"
+  local dest="$2"
 
-  echo "$sha $file" | sha256sum --check --strict
+  case "$file" in
+    *.zip )
+      sudo unzip -o "$file" -d "$dest"
+      ;;
+    *.gz )
+      sudo gzip -d -c "$file" > $dest/$(basename -s .gz "$file")
+      ;;
+    * )
+      false
+      ;;
+  esac
 }
 
 install_from_hashicorp() {
   local app="$1"
   local version="$2"
   local sha="$3"
-  local file="/tmp/${app}.zip"
 
   echo "Installing ${app}..."
 
-  download_from_hashicorp "$app" "$version" "$file"
-  checksum_file "$file" "$sha"
-
-  sudo unzip -o "$file" -d /usr/bin
-  rm -f "$file"
+  download_and_install "https://releases.hashicorp.com/${app}/${version}/${app}_${version}_linux_amd64.zip" "$sha"
 
   echo "Finished installing ${app}"
 }
@@ -44,7 +62,7 @@ install_ansible() {
   echo "Installing ansible..."
   sudo yum -y groupinstall "Development Tools"
   sudo yum install -y gcc-c++ patch readline readline-devel libffi-devel openssl-devel
-  sudo pip install --install-option="--install-scripts=/usr/bin" ansible botocore boto3 netaddr docker-py
+  sudo pip install --install-option="--install-scripts=/usr/bin" ansible boto3 netaddr docker-py
   echo "Finished installing ansible"
 }
 
@@ -53,6 +71,15 @@ install_convox() {
   sudo curl -L https://convox.com/cli/linux/convox -o /usr/bin/convox
   sudo chmod 0755 /usr/bin/convox
   echo "Finished installing convox"
+}
+
+install_terminal_to_html() {
+  echo "Installing terminal-to-html..."
+
+  download_and_install "https://github.com/buildkite/terminal/releases/download/v${TERMINAL_TO_HTML_VERSION}/terminal-to-html-${TERMINAL_TO_HTML_VERSION}-linux-amd64.gz"
+  sudo mv /usr/bin/terminal-to-html* /usr/bin/terminal-to-html
+
+  echo "Finished installing terminal-to-html"
 }
 
 configure_packer() {
@@ -106,8 +133,9 @@ install_ansible
 install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
 install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
 install_convox
+install_terminal_to_html
 
 configure_packer
 configure_ssh
 
-sudo yum install gettext
+sudo yum install -y gettext

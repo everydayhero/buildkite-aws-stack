@@ -78,6 +78,7 @@ install_terminal_to_html() {
 
   download_and_install "https://github.com/buildkite/terminal/releases/download/v${TERMINAL_TO_HTML_VERSION}/terminal-to-html-${TERMINAL_TO_HTML_VERSION}-linux-amd64.gz"
   sudo mv /usr/bin/terminal-to-html* /usr/bin/terminal-to-html
+  sudo chmod +x /usr/bin/terminal-to-html
 
   echo "Finished installing terminal-to-html"
 }

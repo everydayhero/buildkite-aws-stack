@@ -127,11 +127,11 @@ SSH_CONFIG
 EOT
 }
 
-install_ansible
 install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
 install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
 install_convox
 install_ruby
+install_ansible
 
 configure_packer
 configure_ssh

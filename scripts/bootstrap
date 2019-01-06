@@ -80,16 +80,6 @@ install_ruby() {
   echo "Finished installing ruby"
 }
 
-install_terminal_to_html() {
-  echo "Installing terminal-to-html..."
-
-  download_and_install "https://github.com/buildkite/terminal/releases/download/v${TERMINAL_TO_HTML_VERSION}/terminal-to-html-${TERMINAL_TO_HTML_VERSION}-linux-amd64.gz"
-  sudo mv /usr/bin/terminal-to-html* /usr/bin/terminal-to-html
-  sudo chmod +x /usr/bin/terminal-to-html
-
-  echo "Finished installing terminal-to-html"
-}
-
 configure_packer() {
   cat <<EOF | sudo tee -a /etc/sudoers.d/packer
 buildkite-agent ALL=(ALL) NOPASSWD: /bin/mount *
@@ -137,12 +127,11 @@ SSH_CONFIG
 EOT
 }
 
-install_ansible
 install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
 install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
 install_convox
 install_ruby
-install_terminal_to_html
+install_ansible
 
 configure_packer
 configure_ssh

@@ -73,13 +73,6 @@ install_convox() {
   echo "Finished installing convox"
 }
 
-install_ruby() {
-  echo "Installing ruby..."
-  sudo yum install -y ruby
-  sudo gem install --no-rdoc --no-ri bundler
-  echo "Finished installing ruby"
-}
-
 configure_packer() {
   cat <<EOF | sudo tee -a /etc/sudoers.d/packer
 buildkite-agent ALL=(ALL) NOPASSWD: /bin/mount *
@@ -131,7 +124,6 @@ install_ansible
 install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
 install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
 install_convox
-install_ruby
 
 configure_packer
 configure_ssh

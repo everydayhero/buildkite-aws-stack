@@ -65,13 +65,11 @@ configure_plain() {
   if [[ ! -d "$code_dir/$repo" ]]; then
     cd "$code_dir"
     git clone "git@github.com:everydayhero/${repo}.git"
-    cd $repo
   else
     cd "$code_dir/$repo"
     git fetch
     git reset --hard origin/master
   fi
-  bundle install --deployment --without development,test || true
 ) 200>/tmp/$repo.lock
 export PATH="${code_dir}/${repo}/bin:\$PATH"
 export VAULT_PASSWORD="${VAULT_PASSWORD}"

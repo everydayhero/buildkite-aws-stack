@@ -82,12 +82,6 @@ buildkite_flags() {
   echo "export BUILDKITE_API_ACCESS_TOKEN=$BUILDKITE_API_ACCESS_TOKEN"
 }
 
-convox() {
-  echo 'export CONVOX_WAIT=true'
-  echo 'export CONVOX_HOST=console.convox.com'
-  echo "export CONVOX_PASSWORD=$CONVOX_API_KEY"
-}
-
 plain_pipeline_env() {
   echo 'export BRANCH="${BUILDKITE_BRANCH}"'
   echo 'export BUILD_NUMBER="${BUILDKITE_BUILD_NUMBER}"'
@@ -114,7 +108,6 @@ $(ssh_config)
 $(docker_auth)
 $(configure_plain)
 $(buildkite_flags)
-$(convox)
 $(plain_pipeline_env)
 $(plain_services_docker_network)
 ENV

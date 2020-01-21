@@ -209,75 +209,145 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName} Artifacts
 
-  BuildkiteManagedPolicy:
+  DefaultManagedPolicy:
     Type: 'AWS::IAM::ManagedPolicy'
     Properties:
-      ManagedPolicyName: BuildkiteManagedPolicy
+      ManagedPolicyName: DefaultManagedPolicy
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Action: s3:Put*
-            Resource:
-              - !Sub arn:aws:s3:::${SecretsBucket}/*
-              - !Sub arn:aws:s3:::${SecretsBucket}
-          - Effect: Allow
-            Action:
-              - autoscaling:*
-              - iam:*
-              - sns:*
-              - lambda:*
-              - events:*
-              - cloudwatch:*
-              - cloudformation:*
-            Resource:
-              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:*
-              - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:*
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:*
-              - !Sub arn:aws:iam::${AWS::AccountId}:*
-              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:*
-              - !Sub arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*
-              - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:*
-          - Effect: Allow
-            Action: ec2:*
-            Resource: '*'
+            Action: s3:PutObject
+            Resource: !Sub 'arn:aws:s3:::${SecretsBucket}/terraform/*'
             Condition:
               StringEquals:
-                ec2:Region: !Ref AWS::Region
+                s3:x-amz-server-side-encryption: [ 'AES256', 'true' ]
+          - !If
+            - AssumeRole
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Resource: !Ref AccountRoles
+            - !Ref AWS::NoValue
+
+  PackerManagedPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ManagedPolicyName: PackerManagedPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Effect: Allow
             Action:
-              - ec2:Describe*
-              - autoscaling:Describe*
-              - autoscaling:DeletePolicy
-              - cloudwatch:PutMetricAlarm
-              - cloudformation:List*
-              - cloudformation:Describe*
-              - cloudformation:*Template*
-              - sns:Describe*
-              - lambda:Describe*
-              - s3:Get*
+              - ec2:AttachVolume
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:CopyImage
+              - ec2:CreateImage
+              - ec2:CreateKeypair
+              - ec2:CreateSecurityGroup
+              - ec2:CreateSnapshot
+              - ec2:CreateTags
+              - ec2:CreateVolume
+              - ec2:DeleteKeypair
+              - ec2:DeleteSecurityGroup
+              - ec2:DeleteSnapshot
+              - ec2:DeleteVolume
+              - ec2:DeregisterImage
+              - ec2:DescribeImageAttribute
+              - ec2:DescribeImages
+              - ec2:DescribeInstanceStatus
+              - ec2:DescribeInstances
+              - ec2:DescribeKeyPairs
+              - ec2:DescribeRegions
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeSnapshots
+              - ec2:DescribeSubnets
+              - ec2:DescribeTags
+              - ec2:DescribeVolumes
+              - ec2:DetachVolume
+              - ec2:GetPasswordData
+              - ec2:ModifyImageAttribute
+              - ec2:ModifyInstanceAttribute
+              - ec2:ModifySnapshotAttribute
+              - ec2:RegisterImage
+              - ec2:RunInstances
+              - ec2:StopInstances
+              - ec2:TerminateInstances
             Resource: '*'
+            Condition:
+              StringEqualsIfExists:
+                ec2:Region: !Ref AWS::Region
+                ec2:Vpc: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${PackerAllowedVpc}
+                ec2:Subnet: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${PackerAllowedSubnet}
+                ec2:InstanceType: !Ref PackerAllowedInstanceTypes
 
-  Buildkite:
+  Default:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
-      TemplateURL: https://s3.amazonaws.com/buildkite-aws-stack/latest/aws-stack.json
+      TemplateURL: !Sub https://s3.amazonaws.com/buildkite-aws-stack/${BuildkiteStackVersion}/aws-stack.yml
       Parameters:
         AgentsPerInstance: 1
         ArtifactsBucket: !Ref ArtifactsBucket
         AssociatePublicIpAddress: false
         BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
         BuildkiteAgentToken: !Ref BuildkiteAgentToken
-        BuildkiteQueue: !Ref BuildkiteQueue
-        InstanceType: !Ref InstanceType
+        BuildkiteQueue: default
+        InstanceType: !Ref DefaultQueueInstanceType
         KeyName: !Ref KeyName
-        ManagedPolicyARN: !Ref BuildkiteManagedPolicy
-        MaxSize: !Ref MaxSize
-        MinSize: !Ref MinSize
-        RootVolumeSize: !Ref RootVolumeSize
-        ScaleDownAdjustment: !Ref ScaleDownAdjustment
-        ScaleUpAdjustment: !Ref ScaleUpAdjustment
+        ManagedPolicyARN: !Ref DefaultManagedPolicy
+        MaxSize: !Ref DefaultQueueMaxSize
+        MinSize: !Ref DefaultQueueMinSize
+        RootVolumeSize: !Ref DefaultQueueRootVolumeSize
+        ScaleDownAdjustment: -1
+        ScaleUpAdjustment: 5
         SecretsBucket: !Ref SecretsBucket
+        SpotPrice: !Ref DefaultQueueSpotPrice
+        Subnets: !Join [ ',', [ !Ref PrivateSubnet0, !Ref PrivateSubnet1 ] ]
+        VpcId: !Ref Vpc
+
+  Build:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/buildkite-aws-stack/${BuildkiteStackVersion}/aws-stack.yml
+      Parameters:
+        AgentsPerInstance: !Ref BuildQueueAgentsPerInstance
+        ArtifactsBucket: !Ref ArtifactsBucket
+        AssociatePublicIpAddress: false
+        BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
+        BuildkiteAgentToken: !Ref BuildkiteAgentToken
+        BuildkiteQueue: build
+        InstanceType: !Ref BuildQueueInstanceType
+        KeyName: !Ref KeyName
+        MaxSize: 1
+        MinSize: 1
+        RootVolumeSize: !Ref BuildQueueRootVolumeSize
+        ScaleDownAdjustment: -1
+        ScaleUpAdjustment: 5
+        SecretsBucket: !Ref SecretsBucket
+        SpotPrice: !Ref BuildQueueSpotPrice
+        Subnets: !Join [ ',', [ !Ref PrivateSubnet0, !Ref PrivateSubnet1 ] ]
+        VpcId: !Ref Vpc
+
+  Packer:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/buildkite-aws-stack/${BuildkiteStackVersion}/aws-stack.yml
+      Parameters:
+        AgentsPerInstance: 1
+        ArtifactsBucket: !Ref ArtifactsBucket
+        AssociatePublicIpAddress: false
+        BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
+        BuildkiteAgentToken: !Ref BuildkiteAgentToken
+        BuildkiteQueue: packer
+        InstanceType: !Ref PackerQueueInstanceType
+        KeyName: !Ref KeyName
+        ManagedPolicyARN: !Ref PackerManagedPolicy
+        MaxSize: 1
+        MinSize: 0
+        RootVolumeSize: !Ref PackerQueueRootVolumeSize
+        ScaleDownAdjustment: -1
+        ScaleUpAdjustment: 5
+        SecretsBucket: !Ref SecretsBucket
+        SpotPrice: !Ref PackerQueueSpotPrice
         Subnets: !Join [ ',', [ !Ref PrivateSubnet0, !Ref PrivateSubnet1 ] ]
         VpcId: !Ref Vpc
 
@@ -320,10 +390,10 @@ Parameters:
     NoEcho: true
     MinLength: 1
 
-  BuildkiteQueue:
+  BuildkiteStackVersion:
     Type: String
-    Description: 'Queue name that agents will use, targeted in pipeline steps using "queue={value}"'
-    Default: buildkite
+    Description: 'The stack version to use. Default is latest.'
+    Default: latest
     MinLength: 1
 
   BuildkiteAgentRelease:
@@ -336,49 +406,90 @@ Parameters:
 
   KeyName:
     Type: 'AWS::EC2::KeyPair::KeyName'
-    MinLength: 1
 
-  InstanceType:
+  DefaultQueueInstanceType:
     Type: String
     Description: Instance type
     Default: t2.nano
     MinLength: 1
 
-  AgentsPerInstance:
-    Type: Number
-    Description: Number of Buildkite agents to run on each instance
-    Default: 1
-    MinValue: 1
-
-  MaxSize:
-    Type: Number
-    Description: Maximum number of instances for default queue
-    Default: 1
-    MinValue: 1
-
-  MinSize:
+  DefaultQueueMinSize:
     Type: Number
     Description: Minimum number of instances for default queue
     Default: 0
     MinValue: 0
 
-  ScaleDownAdjustment:
+  DefaultQueueMaxSize:
     Type: Number
-    Description: Number of instances to remove on scale down events (UnfinishedJobs == 0 for 30 mins)
-    Default: -1
-    MaxValue: 0
+    Description: Maximum number of instances for default queue
+    Default: 10
+    MinValue: 1
 
-  ScaleUpAdjustment:
-    Type: Number
-    Description: Number of instances to add on scale up events (ScheduledJobsCount > 0 for 1 min)
-    Default: 5
-    MinValue: 0
-
-  RootVolumeSize:
+  DefaultQueueRootVolumeSize:
     Type: Number
     Description: Size of each instance's root EBS volume (in GB)
-    Default: 10
-    MinValue: 10
+    Default: 50
+    MinValue: 50
+
+  DefaultQueueSpotPrice:
+    Type: Number
+    Description: The price for spot instances. Leave blank to not use spot instances.
+
+  AccountRoles:
+    Type: 'CommaDelimitedList'
+    Description: A comma separated list roles that can be assumed as
+    Default: ''
+
+  BuildQueueInstanceType:
+    Type: String
+    Description: Instance type
+    Default: t2.nano
+    MinLength: 1
+
+  BuildQueueAgentsPerInstance:
+    Type: Number
+    Description: Number of Buildkite agents to run on each the build instance
+    Default: 1
+    MinValue: 1
+
+  BuildQueueSpotPrice:
+    Type: Number
+    Description: The price for spot instances. Leave blank to not use spot instances.
+
+  BuildQueueRootVolumeSize:
+    Type: Number
+    Description: Size of each instance's root EBS volume (in GB)
+    Default: 50
+    MinValue: 50
+
+  PackerQueueInstanceType:
+    Type: String
+    Description: Instance type
+    Default: t2.nano
+    MinLength: 1
+
+  PackerQueueSpotPrice:
+    Type: Number
+    Description: The price for spot instances. Leave blank to not use spot instances.
+
+  PackerQueueRootVolumeSize:
+    Type: Number
+    Description: Size of each instance's root EBS volume (in GB)
+    Default: 50
+    MinValue: 50
+
+  PackerAllowedVpc:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: The VPC permitted to launch EC2 instances
+
+  PackerAllowedSubnet:
+    Type: 'AWS::EC2::Subnet::Id'
+    Description: The subnet permitted to launch EC2 instances
+
+  PackerAllowedInstanceTypes:
+    Type: CommaDelimitedList
+    Description: The EC2 instance types permitted
+    Default: t2.nano
 
   AvailabilityZone0:
     Type: 'AWS::EC2::AvailabilityZone::Name'
@@ -389,3 +500,7 @@ Parameters:
     Type: 'AWS::EC2::AvailabilityZone::Name'
     Description: The availability zone for the second subnet
     Default: us-east-1b
+
+Conditions:
+  AssumeRole: !Not
+    - !Equals [ !Join [ ',', !Ref AccountRoles ], '' ]

@@ -18,7 +18,6 @@ All these extras are passed as arguments to Buildkite's CloudFormation template.
 * Private and public subnets, in two availability zones
 * NATs in each availability zone so private hosts can access the Internet
 * Artifact and secrets S3 buckets
-* A maintenance queue (1x t2.nano host listening on queue=buildkite)
 
 ## Getting started
 It's very easy to get a new cluster up and running.
@@ -28,9 +27,6 @@ It's very easy to get a new cluster up and running.
 3. In EC2, create a new Key Pair
 4. In CloudFormation, create a new stack and upload `bootstrap.yml`
 5. Fill in the parameters and continue to create
-6. In Buildkite, create a new pipeline associated to your forked repository
-7. Configure pipeline with environment variables, referencing output values from CloudFormation stack
-8. Run pipeline
 9. ...
 10. Profit?
 

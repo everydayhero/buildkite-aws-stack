@@ -15,52 +15,10 @@ steps:
   - name: ":scroll: env"
     command: "bin/generate-env env && bin/upload-secret env"
     branches: master
-    agents:
-      queue: buildkite
 
   - name: ":scroll: bootstrap"
     command: "bin/upload-secret --public-read scripts/bootstrap"
     branches: master
-    agents:
-      queue: buildkite
     env:
       BUILDKITE_SECRETS_KEY: ""
       BUILDKITE_USE_KMS: false
-
-  - wait
-
-  - name: ":buildkite: Default Queue"
-    command: "bin/stack default +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"
-    branches: master
-    agents:
-      queue: buildkite
-    env:
-      BUILDKITE_QUEUE: default
-      INSTANCE_TYPE: m3.large
-      MIN_SIZE: 3
-      MAX_SIZE: 20
-      ROOT_VOLUME_SIZE: 60
-      SPOT_PRICE: "0.1330"
-
-  - name: ":buildkite: Build Queue"
-    command: "bin/stack build +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"
-    branches: master
-    agents:
-      queue: buildkite
-    env:
-      BUILDKITE_QUEUE: build
-      INSTANCE_TYPE: m3.xlarge
-      MIN_SIZE: 1
-      MAX_SIZE: 1
-      ROOT_VOLUME_SIZE: 500
-      SCALE_UP_ADJUSTMENT: 1
-      AGENTS_PER_INSTANCE: 5
-      SPOT_PRICE: "0.2660"
-
-  - name: ":buildkite: Packer Queue"
-    command: "bin/stack packer +Commit=$BUILDKITE_COMMIT +Branch=$BUILDKITE_BRANCH +BuildNumber=$BUILDKITE_BUILD_NUMBER +BuildUrl=$BUILDKITE_BUILD_URL"
-    branches: master
-    agents:
-      queue: buildkite
-    env:
-      TEMPLATE: packer-stack.yml

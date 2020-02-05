@@ -8,8 +8,6 @@ TERRAFORM_SHA256=6b8ce67647a59b2a3f70199c304abca0ddec0e49fd060944c26f666298e2341
 PACKER_VERSION=1.2.2
 PACKER_SHA256=6575f8357a03ecad7997151234b1b9f09c7a5cf91c194b23a461ee279d68c6a8
 
-TERMINAL_TO_HTML_VERSION=3.1.0
-
 download_and_install() {
   local url="$1"
   local sha="${2:-}"
@@ -74,50 +72,8 @@ EOF
   sudo chmod 440 /etc/sudoers.d/packer
 }
 
-configure_ssh() {
-  mkdir -p ~/.ssh/cm
-  chmod 0700 ~/.ssh
-
-  cat <<EOT
-cat <<SSH_CONFIG > ~/.ssh/config
-Host *
-  ServerAliveInterval 120
-
-Host bastion-* *.plain.edh.ro
-  ForwardAgent yes
-  TCPKeepAlive yes
-  ServerAliveInterval 300
-  StrictHostKeyChecking no
-  ControlPath ~/.ssh/cm/%r@%h:%p
-  ControlMaster auto
-  ControlPersist 10m
-  User deployer
-
-Host bastion-production
-  Hostname bastion.everydayhero.io
-  Port 2020
-
-Host bastion-staging
-  Hostname bastion.everydayhero-staging.io
-  Port 2020
-
-Host production-*.plain.edh.ro
-  ProxyCommand ssh -q bastion-production -W \\\`echo %h | cut -f 1-1 -d.\\\`:%p
-
-Host staging-*.plain.edh.ro
-  ProxyCommand ssh -q bastion-staging -W \\\`echo %h | cut -f 1-1 -d.\\\`:%p
-
-Host github.com
-  StrictHostKeyChecking no
-SSH_CONFIG
-EOT
-}
-
 install_ansible
 install_from_hashicorp "terraform" $TERRAFORM_VERSION $TERRAFORM_SHA256
 install_from_hashicorp "packer" $PACKER_VERSION $PACKER_SHA256
 
 configure_packer
-configure_ssh
-
-sudo yum install -y gettext

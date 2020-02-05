@@ -288,6 +288,7 @@ Resources:
         AgentsPerInstance: 1
         ArtifactsBucket: !Ref ArtifactsBucket
         AssociatePublicIpAddress: false
+        BootstrapScriptUrl: !Ref BootstrapScriptUrl
         BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
         BuildkiteAgentToken: !Ref BuildkiteAgentToken
         BuildkiteQueue: default
@@ -312,6 +313,7 @@ Resources:
         AgentsPerInstance: !Ref BuildQueueAgentsPerInstance
         ArtifactsBucket: !Ref ArtifactsBucket
         AssociatePublicIpAddress: false
+        BootstrapScriptUrl: !Ref BootstrapScriptUrl
         BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
         BuildkiteAgentToken: !Ref BuildkiteAgentToken
         BuildkiteQueue: build
@@ -335,6 +337,7 @@ Resources:
         AgentsPerInstance: 1
         ArtifactsBucket: !Ref ArtifactsBucket
         AssociatePublicIpAddress: false
+        BootstrapScriptUrl: !Ref BootstrapScriptUrl
         BuildkiteAgentRelease: !Ref BuildkiteAgentRelease
         BuildkiteAgentToken: !Ref BuildkiteAgentToken
         BuildkiteQueue: packer
@@ -500,6 +503,10 @@ Parameters:
     Type: 'AWS::EC2::AvailabilityZone::Name'
     Description: The availability zone for the second subnet
     Default: us-east-1b
+
+  BootstrapScriptUrl:
+    Type: String
+    Description: A script that is executed on boot on each instance
 
 Conditions:
   AssumeRole: !Not

@@ -58,14 +58,14 @@ install_from_hashicorp() {
 
 install_ansible() {
   echo "Installing ansible..."
-  sudo yum -y groupinstall "Development Tools"
-  sudo yum install -y gcc-c++ patch readline readline-devel libffi-devel openssl-devel
-  sudo pip install --install-option="--install-scripts=/usr/bin" ansible boto3 netaddr docker-py
+  sudo yum -q -y groupinstall "Development Tools"
+  sudo yum install -y -q python3 python3-devel
+  sudo pip3 install -q ansible boto boto3 netaddr docker-py
   echo "Finished installing ansible"
 }
 
 configure_packer() {
-  cat <<EOF | sudo tee -a /etc/sudoers.d/packer
+  cat <<EOF | sudo tee -a /etc/sudoers.d/packer >/dev/null
 buildkite-agent ALL=(ALL) NOPASSWD: /bin/mount *
 buildkite-agent ALL=(ALL) NOPASSWD:SETENV: /usr/local/bin/packer build *
 EOF
